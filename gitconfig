@@ -1,0 +1,54 @@
+[user]
+	name = Yoann Chaudet
+	email = c.yoann@gmail.com
+  signingkey = ~/.ssh/id_ed25519.pub # make the machine's SSH key the signing key too
+[github]
+	user = yoannchaudet
+[push]
+	default = current
+[credential]
+	helper = osxkeychain
+[filter "lfs"]
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+[core]
+	editor = code --wait
+	excludesfile = ~/.gitignore
+[alias]
+	# Source: https://haacked.com/archive/2014/07/28/github-flow-aliases/
+	co = checkout
+	ec = config --global -e
+	up = !git pull --rebase --prune $@ && git submodule update --init --recursive
+	cob = checkout -b
+	cm = !git add -A && git commit -m
+	save = !git add -A && git commit -m 'SAVEPOINT'
+	wip = !git add -u && git commit -m "WIP"
+	undo = reset HEAD~1 --mixed
+	amend = commit -a --amend
+	wipe = !git add -A && git commit -qm 'WIPE SAVEPOINT' && git reset HEAD~1 --hard
+	bclean = "!f() { git branch --merged ${1-master} | grep -v " ${1-master}$" | xargs git branch -d; }; f"
+	bdone = "!f() { git checkout ${1-master} && git up && git bclean ${1-master}; }; f"
+[pager]
+	branch = false
+[init]
+	defaultBranch = main
+[pull]
+	rebase = true
+[advice]
+	detachedHead = false
+
+# Commit signing (with the SSH key)
+[commit]
+	gpgsign = true
+[gpg]
+	format = ssh
+[gpg "ssh"]
+	allowedSignersFile = ~/.git/allowedSignersFile
+
+# Work: GitHub
+[url "git@github.com:github/"]
+	insteadOf = https://github.com/github/
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/

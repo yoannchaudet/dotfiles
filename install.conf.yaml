@@ -1,0 +1,7 @@
+- clean: ["~"]
+
+- shell:
+    - [ ./scripts/output_allowedsignersfile, Outputing allowedSignersFile for Git ]
+
+- link:
+    ~/.gitconfig: gitconfig
