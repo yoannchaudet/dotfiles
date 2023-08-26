@@ -1,9 +1,20 @@
 - clean: ["~"]
 
-# Brew
+# Brew + shell
 
 - install-brew: true
+- brew:
+    - fish
+- shell:
+    - [fish/make_default.sh, Make Fish the default shell]
+- link:
+    ~/.config/fish/config.fish:
+        force: true
+        path: fish/config.fish
+- shell:
+    - [curl -L https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish -c 'source - --noninteractive --yes', Install Oh My Fish]
 
+# Brew
 - brew:
       # Git
       - git
@@ -18,8 +29,27 @@
       - difftastic
       - hexyl
 
-      # Shell
-      - fish
+- cask:
+    # Utilities
+    - clipy
+    - bitwarden
+    - shottr
+
+    # Photo
+    - darktable
+
+    # Dev
+    - powershell
+    - visual-studio-code
+    - iterm2
+
+    # CAD
+    - autodesk-fusion360
+
+    # Misc
+    - spotify
+    - obsidian
+    - google-drive
 
 # Git
 

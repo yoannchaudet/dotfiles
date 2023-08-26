@@ -45,7 +45,7 @@
 [gpg]
 	format = ssh
 [gpg "ssh"]
-	allowedSignersFile = ~/.git/allowedSignersFile
+	allowedSignersFile = ~/.gitAllowedSignersFile
 
 # Work: GitHub
 [url "git@github.com:github/"]

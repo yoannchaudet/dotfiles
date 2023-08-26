@@ -7,8 +7,7 @@ email="c.yoann@gmail.com"
 url="https://github.com/yoannchaudet.keys"
 
 # Output file
-eval output_file="~/.git/allowedSignersFile"
-mkdir -p "$(dirname "$output_file")"
+eval output_file="~/.gitAllowedSignersFile"
 
 # Add content in the file
 curl -s "$url" | while IFS= read -r line; do
