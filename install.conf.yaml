@@ -19,7 +19,7 @@
 - shell:
     - [ fonts/install_monoki.sh, Install Monoki Nerd Font ]
 
-# Brew
+# More Brew
 - brew:
       # Git
       - git
@@ -56,7 +56,7 @@
     - obsidian
     - google-drive
 
-# Git
+# Git + commit signing with SSH
 
 - shell:
       - [git/output_allowedsignersfile.sh, Outputing allowedSignersFile for Git]
