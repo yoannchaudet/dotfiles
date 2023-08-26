@@ -1,7 +1,30 @@
 - clean: ["~"]
 
-- shell:
-    - [ git/output_allowedsignersfile.sh, Outputing allowedSignersFile for Git ]
+# Brew
 
+- install-brew: true
+
+- brew:
+      # Git
+      - git
+      - git-lfs
+
+      # Utilities and modern stuff
+      - tree
+      - bat
+      - fd
+      - ripgrep
+      - yq
+      - difftastic
+      - hexyl
+
+      # Shell
+      - fish
+
+# Git
+
+- shell:
+      - [git/output_allowedsignersfile.sh, Outputing allowedSignersFile for Git]
+      - [git lfs install, Enable Git LFS]
 - link:
-    ~/.gitconfig: git/gitconfig
+      ~/.gitconfig: git/gitconfig
