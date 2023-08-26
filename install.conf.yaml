@@ -12,7 +12,11 @@
         force: true
         path: fish/config.fish
 - shell:
-    - [curl -L https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish -c 'source - --noninteractive --yes', Install Oh My Fish]
+    - [ oh-my-fish/install.sh, Install Oh My Fish]
+
+# Fonts
+- shell:
+    - [ fonts/install_monoki.sh, Install Monoki Nerd Font ]
 
 # Brew
 - brew:
