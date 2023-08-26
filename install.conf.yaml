@@ -12,7 +12,8 @@
         force: true
         path: fish/config.fish
 - shell:
-    - [ oh-my-fish/install.sh, Install Oh My Fish]
+    - [ fish/install_fisher.sh, Install Fisher ]
+    - [ fish/install_tide.sh, Install Tide ]
 
 # Fonts
 - shell:
