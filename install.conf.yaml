@@ -4,20 +4,33 @@
 
 - install-brew: true
 - brew:
-    - fish
+      - fish
 - shell:
-    - [fish/make_default.sh, Make Fish the default shell]
+      - [fish/make_default.sh, Make Fish the default shell]
 - link:
-    ~/.config/fish/config.fish:
-        force: true
-        path: fish/config.fish
+      ~/.config/fish/config.fish:
+          force: true
+          path: fish/config.fish
 - shell:
-    - [ fish/install_fisher.sh, Install Fisher ]
-    - [ fish/install_tide.sh, Install Tide ]
+      - [fish/install_fisher.sh, Install Fisher]
+      - [fish/install_tide.sh, Install Tide]
+      - [echo yes | fish_config theme save dracula, Set theme to Dracula]
 
 # Fonts
 - shell:
-    - [ fonts/install_monoki.sh, Install Monoki Nerd Font ]
+      - [fonts/install_monoki.sh, Install Monoki Nerd Font]
+
+# Iterm2
+
+- brew:
+      - iterm2
+- link:
+      ~/.config/iterm2/com.googlecode.iterm2.plist:
+            create: true
+            force: true
+            path: iterm2/com.googlecode.iterm2.plist
+- shell:
+      - [iterm2/set_settings.sh, Set Iterm2 settings]
 
 # More Brew
 - brew:
@@ -35,26 +48,25 @@
       - hexyl
 
 - cask:
-    # Utilities
-    - clipy
-    - bitwarden
-    - shottr
+      # Utilities
+      - clipy
+      - bitwarden
+      - shottr
 
-    # Photo
-    - darktable
+      # Photo
+      - darktable
 
-    # Dev
-    - powershell
-    - visual-studio-code
-    - iterm2
+      # Dev
+      - powershell
+      - visual-studio-code
 
-    # CAD
-    - autodesk-fusion360
+      # CAD
+      - autodesk-fusion360
 
-    # Misc
-    - spotify
-    - obsidian
-    - google-drive
+      # Misc
+      - spotify
+      - obsidian
+      - google-drive
 
 # Git + commit signing with SSH
 
