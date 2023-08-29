@@ -1,0 +1,7 @@
+- clean: ["~"]
+
+# Bitwarden via Brew
+
+- install-brew: true
+- cask:
+      - bitwarden
