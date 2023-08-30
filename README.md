@@ -43,13 +43,13 @@ I could have used [Ansible](https://www.ansible.com/) playbooks but I felt like 
 
    You will need to sign out and sign in again for some settings to apply.
 
-   Most apps will be installed already and your shell (`fish`) setup in `iterm2`.
+   Most apps will be installed already and your shell all setup.
 
    🤘
 
 ## Notes
 
-- I use [Dotbot](https://github.com/anishathalye/dotbot) to manage this whole repository
+- I use [`Dotbot`](https://github.com/anishathalye/dotbot) to manage this whole repository
 - [`Git`](https://git-scm.com/doc) is setup to sign commits with my SSH key
-- [`Fish`](https://fishshell.com/) is my shell and [Tide](https://github.com/IlanCosman/tide) its prompt
-- [`Dracula`](https://draculatheme.com/) is my theme for terminals
+- [`Fish`](https://fishshell.com/) is my shell and [`Tide``](https://github.com/IlanCosman/tide) its prompt
+- [`Dracula`](https://draculatheme.com/) is my terminal theme
