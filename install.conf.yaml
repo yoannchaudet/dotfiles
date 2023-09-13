@@ -46,6 +46,7 @@
       - yq
       - difftastic
       - hexyl
+      - imagemagick
 
 - cask:
       # Utilities
@@ -60,8 +61,9 @@
       - powershell
       - visual-studio-code
 
-      # CAD
+      # CAD + 3D printing
       - autodesk-fusion360
+      - prusaslicer
 
       # Misc
       - spotify
