@@ -1,3 +1,8 @@
+- defaults:
+    link:
+      relink: true
+      force: true
+      create: true
 - clean: ["~"]
 
 # Brew + shell
@@ -9,7 +14,6 @@
       - [fish/make_default.sh, Make Fish the default shell]
 - link:
       ~/.config/fish/config.fish:
-          force: true
           path: fish/config.fish
 - shell:
       - [fish/install_fisher.sh, Install Fisher]
@@ -26,8 +30,6 @@
       - iterm2
 - link:
       ~/.config/iterm2/com.googlecode.iterm2.plist:
-            create: true
-            force: true
             path: iterm2/com.googlecode.iterm2.plist
 - shell:
       - [iterm2/set_settings.sh, Set Iterm2 settings]
