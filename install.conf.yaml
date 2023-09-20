@@ -41,6 +41,11 @@
       # Git
       - git
       - git-lfs
+      - git-crypt
+      - gnupg
+
+      # Binggan
+      - ansible
 
       # Utilities and modern stuff
       - tree
