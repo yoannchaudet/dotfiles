@@ -66,6 +66,9 @@
       # Photo
       - darktable
 
+      # Books
+      - calibre
+
       # Dev
       - powershell
       - visual-studio-code
