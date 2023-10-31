@@ -47,9 +47,6 @@
       # Binggan
       - ansible
 
-      # Rust
-      - rustup-init
-
       # Utilities and modern stuff
       - tree
       - bat
@@ -96,3 +93,8 @@
       - [git lfs install, Enable Git LFS]
 - link:
       ~/.gitconfig: git/gitconfig
+
+# Rust
+
+- shell:
+      - [misc/install_rust.fish, Install Rust]
