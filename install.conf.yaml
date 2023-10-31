@@ -47,6 +47,9 @@
       # Binggan
       - ansible
 
+      # Rust
+      - rustup-init
+
       # Utilities and modern stuff
       - tree
       - bat
