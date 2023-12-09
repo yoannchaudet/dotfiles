@@ -17,6 +17,8 @@
           path: fish/config.fish
       ~/.config/fish/functions/fish_ssh_agent.fish:
           path: fish/fish_ssh_agent.fish
+      ~/.ssh/config:
+          path: ssh/config
 - shell:
       - [fish/install_fisher.sh, Install Fisher]
       - [fish/install_tide.sh, Install Tide]
@@ -63,8 +65,8 @@
       - bitwarden
       - shottr
 
-      # Photo
-      - darktable
+      # Photo (not signed so ignore for now)
+      # - darktable
 
       # Books
       - calibre

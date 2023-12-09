@@ -1,0 +1,2 @@
+# No need to manually call ssh-add
+AddKeysToAgent yes
