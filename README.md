@@ -11,9 +11,11 @@ I could have used [Ansible](https://www.ansible.com/) playbooks but I felt like 
 
 ## Setup
 
+1. Install `brew` (see [instructions](https://brew.sh))
+
 1. Clone this repository
 
-   You need `git` already installed on your machine, on MacOS, you have a default version packaged by Apple.
+   You need `git` already installed on your machine, on MacOS, you have a default version packaged by Apple. It is part of the dev tools which may need to be installed first (the OS will prompt you as needed).
 
 2. Run the following script to install [Bitwarden](https://bitwarden.com/) (your password manager):
 
@@ -24,7 +26,7 @@ I could have used [Ansible](https://www.ansible.com/) playbooks but I felt like 
 3. Create a new SSH key with:
 
    ```sh
-   ssh-keygen -t ed25519 -C "c.yoann@gmail.com"
+   ssh-keygen -t ed25519 -C "<comment>"
    ```
 
    Copy the public key with:

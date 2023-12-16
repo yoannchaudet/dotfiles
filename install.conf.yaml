@@ -1,102 +1,105 @@
 - defaults:
-    link:
-      relink: true
-      force: true
-      create: true
+        link:
+              relink: true
+              force: true
+              create: true
 - clean: ["~"]
 
 # Brew + shell
 
 - install-brew: true
 - brew:
-      - fish
+        - fish
 - shell:
-      - [fish/make_default.sh, Make Fish the default shell]
+        - [fish/make_default.sh, Make Fish the default shell]
 - link:
-      ~/.config/fish/config.fish:
-          path: fish/config.fish
-      ~/.config/fish/functions/fish_ssh_agent.fish:
-          path: fish/fish_ssh_agent.fish
-      ~/.ssh/config:
-          path: ssh/config
+        ~/.config/fish/config.fish:
+              path: fish/config.fish
+        ~/.config/fish/functions/fish_ssh_agent.fish:
+              path: fish/fish_ssh_agent.fish
+        ~/.ssh/config:
+              path: ssh/config
 - shell:
-      - [fish/install_fisher.sh, Install Fisher]
-      - [fish/install_tide.sh, Install Tide]
-      - [echo yes | fish_config theme save dracula, Set theme to Dracula]
+        - [fish/install_fisher.sh, Install Fisher]
+        - [fish/install_tide.sh, Install Tide]
+        - [echo yes | fish_config theme save dracula, Set theme to Dracula]
 
 # Fonts
 - shell:
-      - [fonts/install_monoki.sh, Install Monoki Nerd Font]
+        - [fonts/install_monoki.sh, Install Monoki Nerd Font]
 
 # Iterm2
 
 - brew:
-      - iterm2
+        - iterm2
 - link:
-      ~/.config/iterm2/com.googlecode.iterm2.plist:
-            path: iterm2/com.googlecode.iterm2.plist
+        ~/.config/iterm2/com.googlecode.iterm2.plist:
+              path: iterm2/com.googlecode.iterm2.plist
 - shell:
-      - [iterm2/set_settings.sh, Set Iterm2 settings]
+        - [iterm2/set_settings.sh, Set Iterm2 settings]
 
 # More Brew
 - brew:
-      # Git
-      - git
-      - git-lfs
-      - git-crypt
-      - gnupg
+        # Git
+        - git
+        - git-lfs
+        - git-crypt
+        - gnupg
 
-      # Binggan
-      - ansible
+        # Binggan
+        - ansible
 
-      # Utilities and modern stuff
-      - tree
-      - bat
-      - fd
-      - ripgrep
-      - yq
-      - difftastic
-      - hexyl
-      - imagemagick
+        # Utilities and modern stuff
+        - tree
+        - bat
+        - fd
+        - ripgrep
+        - yq
+        - difftastic
+        - hexyl
+        - imagemagick
 
 - cask:
-      # Utilities
-      - clipy
-      - bitwarden
-      - shottr
+        # Utilities
+        - clipy
+        - bitwarden
+        - shottr
 
-      # Photo (not signed so ignore for now)
-      # - darktable
+        # Photo (not signed so ignore for now)
+        # - darktable
 
-      # Books
-      - calibre
+        # Books
+        - calibre
 
-      # Movies
-      - vlc
+        # Movies
+        - vlc
 
-      # Dev
-      - powershell
-      - visual-studio-code
+        # Dev
+        - powershell
+        - visual-studio-code
 
-      # CAD + 3D printing
-      - autodesk-fusion360
-      - prusaslicer
+        # CAD + 3D printing
+        - autodesk-fusion360
+        - prusaslicer
 
-      # Misc
-      - spotify
-      - obsidian
-      - google-drive
-      - jump-desktop-connect
+        # Misc
+        - spotify
+        - obsidian
+        - google-drive
+        - jump-desktop-connect
 
 # Git + commit signing with SSH
 
 - shell:
-      - [git/output_allowedsignersfile.sh, Outputing allowedSignersFile for Git]
-      - [git lfs install, Enable Git LFS]
+        - [
+                git/output_allowedsignersfile.sh,
+                Outputing allowedSignersFile for Git,
+          ]
+        - [git lfs install, Enable Git LFS]
 - link:
-      ~/.gitconfig: git/gitconfig
+        ~/.gitconfig: git/gitconfig
 
 # Rust
 
 - shell:
-      - [misc/install_rust.fish, Install Rust]
+        - [misc/install_rust.fish, Install Rust]

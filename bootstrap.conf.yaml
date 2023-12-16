@@ -1,12 +1,10 @@
 - defaults:
-    link:
-      relink: true
-      force: true
-      create: true
+        link:
+              relink: true
+              force: true
+              create: true
 - clean: ["~"]
 
-# Bitwarden via Brew
-
-- install-brew: true
+# Bitwarden via Brew (not we disable brew install because that does not work well)
 - cask:
-      - bitwarden
+        - bitwarden
