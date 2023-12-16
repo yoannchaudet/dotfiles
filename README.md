@@ -47,6 +47,12 @@ I could have used [Ansible](https://www.ansible.com/) playbooks but I felt like 
 
    Most apps will be installed already and your shell all setup.
 
+   For extra personal things (non-work):
+
+   ```sh
+   ./install-personal
+   ```
+
    🤘
 
 ## Notes
