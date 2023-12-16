@@ -6,8 +6,6 @@
 - clean: ["~"]
 
 # Brew + shell
-
-- install-brew: true
 - brew:
         - fish
 - shell:
@@ -46,9 +44,6 @@
         - git-crypt
         - gnupg
 
-        # Binggan
-        - ansible
-
         # Utilities and modern stuff
         - tree
         - bat
@@ -65,28 +60,14 @@
         - bitwarden
         - shottr
 
-        # Photo (not signed so ignore for now)
-        # - darktable
-
-        # Books
-        - calibre
-
-        # Movies
-        - vlc
-
         # Dev
         - powershell
         - visual-studio-code
-
-        # CAD + 3D printing
-        - autodesk-fusion360
-        - prusaslicer
 
         # Misc
         - spotify
         - obsidian
         - google-drive
-        - jump-desktop-connect
 
 # Git + commit signing with SSH
 

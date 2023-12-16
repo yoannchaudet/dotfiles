@@ -1,0 +1,25 @@
+- defaults:
+        link:
+              relink: true
+              force: true
+              create: true
+- clean: ["~"]
+
+# More Brew
+- brew:
+        # Binggan
+        - ansible
+
+- cask:
+        # Books
+        - calibre
+
+        # Movies
+        - vlc
+
+        # CAD + 3D printing
+        - autodesk-fusion360
+        - prusaslicer
+
+        # Misc
+        - jump-desktop-connect
