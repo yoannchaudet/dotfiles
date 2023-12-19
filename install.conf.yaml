@@ -38,11 +38,12 @@
 
 # More Brew
 - brew:
-        # Git
+        # Git / gh
         - git
         - git-lfs
         - git-crypt
         - gnupg
+        - gh
 
         # Utilities and modern stuff
         - tree
@@ -59,6 +60,7 @@
         - clipy
         - bitwarden
         - shottr
+        - google-drive
 
         # Dev
         - powershell
@@ -77,6 +79,7 @@
                 git/output_allowedsignersfile.sh,
                 Outputing allowedSignersFile for Git,
           ]
+        - [ git/setup_sockets.sh, Create SSH sockets folder ] 
         - [git lfs install, Enable Git LFS]
 - link:
         ~/.gitconfig: git/gitconfig
