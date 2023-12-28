@@ -5,7 +5,7 @@
               create: true
 - clean: ["~"]
 
-# Brew + shell
+# Brew + shell/fish
 - brew:
         - fish
 - shell:
@@ -15,6 +15,8 @@
               path: fish/config.fish
         ~/.config/fish/functions/fish_ssh_agent.fish:
               path: fish/fish_ssh_agent.fish
+        ~/.config/fish/functions/fish_set_custom_paths.fish:
+              path: fish/fish_set_custom_paths.fish
         ~/.ssh/config:
               path: ssh/config
 - shell:

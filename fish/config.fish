@@ -10,4 +10,7 @@ if status --is-interactive
   # Start SSH-AGENT (if not done already)
   fish_ssh_agent
 
+  # Set custom paths
+  fish_set_custom_paths
+
 end
