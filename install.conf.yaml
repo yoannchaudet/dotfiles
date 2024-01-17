@@ -67,6 +67,7 @@
         # Dev
         - powershell
         - visual-studio-code
+        - dotnet-sdk
 
         # Misc
         - microsoft-edge
