@@ -47,6 +47,9 @@
         - gnupg
         - gh
 
+        # Dev
+        - python
+
         # Utilities and modern stuff
         - tree
         - bat

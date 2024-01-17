@@ -10,4 +10,7 @@ function fish_set_custom_paths --description "Set my current PATH variables"
         set -U fish_user_paths $pages_engineering_dotfiles $fish_user_paths
     end
 
+    # Brew: Unversioned symlinks for python, python-config, pip etc.
+    set -U fish_user_paths (brew --prefix python)/libexec/bin
+
 end
