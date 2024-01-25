@@ -66,6 +66,7 @@
         - bitwarden
         - shottr
         - google-drive
+        - itsycal
 
         # Dev
         - powershell
@@ -85,7 +86,7 @@
                 git/output_allowedsignersfile.sh,
                 Outputing allowedSignersFile for Git,
           ]
-        - [ git/setup_sockets.sh, Create SSH sockets folder ] 
+        - [ git/setup_sockets.sh, Create SSH sockets folder ]
         - [git lfs install, Enable Git LFS]
 - link:
         ~/.gitconfig: git/gitconfig
