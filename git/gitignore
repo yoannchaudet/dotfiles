@@ -1,2 +1,6 @@
 # MacOS stuff
 .DS_Store
+
+# IDE
+.idea
+.vscode
