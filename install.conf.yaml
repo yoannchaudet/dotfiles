@@ -49,6 +49,7 @@
 
         # Dev
         - python
+        - go
 
         # Utilities and modern stuff
         - tree
