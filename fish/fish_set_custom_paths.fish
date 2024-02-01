@@ -7,7 +7,7 @@ function fish_set_custom_paths --description "Set my current PATH variables"
     # github/pages-engineering's dotfiles (if it exists locally only)
     set pages_engineering_dotfiles ~/work-repos/github@pages-engineering/dotfiles/bin/
     if test -d $pages_engineering_dotfiles
-        set -U fish_user_paths $pages_engineering_dotfiles $fish_user_paths
+        fish_add_path $pages_engineering_dotfiles
     end
 
     # goproxy
@@ -19,6 +19,6 @@ function fish_set_custom_paths --description "Set my current PATH variables"
     set -Ux GONOSUMDB 'github.com/github/*'
 
     # Brew: Unversioned symlinks for python, python-config, pip etc.
-    set -U fish_user_paths (brew --prefix python)/libexec/bin
+    fish_add_path (brew --prefix python)/libexec/bin
 
 end
