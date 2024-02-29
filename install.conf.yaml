@@ -50,6 +50,7 @@
         # Dev
         - python
         - go
+        - orbstack
 
         # Utilities and modern stuff
         - tree

@@ -1,3 +1,6 @@
+# Orbstack (if this file does not exist SSH should be ok with it)
+Include ~/.orbstack/ssh/config
+
 # No need to manually call ssh-add
 AddKeysToAgent yes
 
