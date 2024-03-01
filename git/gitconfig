@@ -30,6 +30,9 @@
 	wipe = !git add -A && git commit -qm 'WIPE SAVEPOINT' && git reset HEAD~1 --hard
 	bclean = "!f() { git branch --merged ${1-master} | grep -v " ${1-master}$" | xargs git branch -d; }; f"
 	bdone = "!f() { git checkout ${1-master} && git up && git bclean ${1-master}; }; f"
+
+	# My stuff
+	bump = !git commit --allow-empty -m bump
 [pager]
 	branch = false
 [init]
