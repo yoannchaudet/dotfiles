@@ -62,6 +62,9 @@
         - hexyl
         - imagemagick
 
+        # Work related stuff
+        - adr-tools
+
 - cask:
         # Utilities
         - clipy
