@@ -94,6 +94,7 @@
         - [git lfs install, Enable Git LFS]
 - link:
         ~/.gitconfig: git/gitconfig
+        ~/.gitconfig-work: git/gitconfig-work
         ~/.gitignore: git/gitignore
 
 # Rust

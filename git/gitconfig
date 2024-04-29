@@ -50,8 +50,6 @@
 [gpg "ssh"]
 	allowedSignersFile = ~/.gitAllowedSignersFile
 
-# Work: GitHub
-[url "git@github.com:github/"]
-	insteadOf = https://github.com/github/
-[url "ssh://git@github.com/"]
-	insteadOf = https://github.com/
+# Work
+[includeIf "gitdir:~/work-repos/"]
+	path = ~/.gitconfig-work

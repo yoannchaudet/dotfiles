@@ -1,0 +1,6 @@
+[url "git@github.com:github/"]
+	insteadOf = https://github.com/github/
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/
+[maintenance]
+	repo = /Users/yoannchaudet/work-repos/github@github
