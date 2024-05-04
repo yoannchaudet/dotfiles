@@ -51,6 +51,7 @@
         - python
         - go
         - orbstack
+        - hugo
 
         # Utilities and modern stuff
         - tree
