@@ -57,6 +57,7 @@
         - sass/sass/sass
 
         # Utilities and modern stuff
+        - wget
         - tree
         - bat
         - fd
