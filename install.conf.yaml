@@ -51,7 +51,10 @@
         - python
         - go
         - orbstack
+
+        # Hugo: mpchaudet.art, mavensoul.studio
         - hugo
+        - sass/sass/sass
 
         # Utilities and modern stuff
         - tree
