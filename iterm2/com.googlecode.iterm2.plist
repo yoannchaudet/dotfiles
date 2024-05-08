@@ -1114,13 +1114,15 @@
 				<real>0.90032327175140381</real>
 			</dict>
 			<key>Guid</key>
-			<string>42864BFB-2696-4E4D-8B7D-11596370D01A</string>
+			<string>03ADFB4F-94C7-4CCD-ABB6-DB079DE2DAEB</string>
 			<key>Has Hotkey</key>
+			<true/>
+			<key>Hide After Opening</key>
 			<false/>
 			<key>Horizontal Spacing</key>
 			<real>1</real>
 			<key>HotKey Activated By Modifier</key>
-			<false/>
+			<true/>
 			<key>HotKey Alternate Shortcuts</key>
 			<array/>
 			<key>HotKey Characters</key>
@@ -1134,7 +1136,7 @@
 			<key>HotKey Modifier Flags</key>
 			<integer>0</integer>
 			<key>HotKey Window Animates</key>
-			<false/>
+			<true/>
 			<key>HotKey Window AutoHides</key>
 			<true/>
 			<key>HotKey Window Dock Click Action</key>
@@ -1142,7 +1144,7 @@
 			<key>HotKey Window Floats</key>
 			<false/>
 			<key>HotKey Window Reopens On Activation</key>
-			<true/>
+			<false/>
 			<key>Idle Code</key>
 			<integer>0</integer>
 			<key>Initial Use Transparency</key>
@@ -1219,7 +1221,7 @@
 					<key>Label</key>
 					<string></string>
 					<key>Text</key>
-					<string>42864BFB-2696-4E4D-8B7D-11596370D01A</string>
+					<string>03ADFB4F-94C7-4CCD-ABB6-DB079DE2DAEB</string>
 					<key>Version</key>
 					<integer>1</integer>
 				</dict>
@@ -1508,7 +1510,7 @@
 			<key>Silence Bell</key>
 			<false/>
 			<key>Space</key>
-			<integer>-1</integer>
+			<integer>0</integer>
 			<key>Sync Title</key>
 			<false/>
 			<key>Tags</key>
@@ -1516,7 +1518,7 @@
 			<key>Terminal Type</key>
 			<string>xterm-256color</string>
 			<key>Transparency</key>
-			<real>0.29999999999999999</real>
+			<real>0.10494514627659574</real>
 			<key>Unlimited Scrollback</key>
 			<false/>
 			<key>Use Bold Font</key>
@@ -1532,7 +1534,7 @@
 			<key>Visual Bell</key>
 			<true/>
 			<key>Window Type</key>
-			<integer>2</integer>
+			<integer>0</integer>
 			<key>Working Directory</key>
 			<string>/Users/yoannchaudet</string>
 		</dict>
