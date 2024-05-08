@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+
+#
+# Source: https://github.com/nobe4/dotfiles/blob/c90daf9fff4633634f7df492bb337908a60d504f/bin/commands/wait_for_pr
+#
+
+#VERSION 0.0.2
+#/ Usage: wait_for_pr [FLAG] [CONDITION] [URL]
+#/
+#/ This is a base bash script with as many niceties included as possible.
+#/ See comments below for each parts.
+#/
+#/ Flags:
+#/   -h|--help          Show this help
+#/   -v|--version       Show the version
+#/   -c|--clear         Clear the screen before each check
+#/   -d|--delay DELAY   Delay between checks in seconds (default: ${DELAY})
+#/
+#/ Condition (current: ${CONDITION}):
+#/   a|approved         PR is approved sufficiently
+#/   c|ci_completed     CI is completed
+#/   g|ci_green         CI is green
+#/   d|deployed         PR is deployed
+#/   m|merged           PR is merged
+#/   r|ready            PR is approved and CI is green
+
+set -e
+
+DELAY="10"
+
+show_help() { export CONDITION DELAY URL && grep ^#/ <"${0}" |cut -c4- | envsubst; }
+show_version(){ grep ^#VERSION <"${0}" |cut -d' ' -f2; }
+
+# Parse arguments
+while [ "${#}" -gt 0 ]; do
+	case "${1}" in
+		-h|--help) show_help && exit 0 ;;
+		-v|--version) show_version && exit 0 ;;
+		-c|--clear) CLEAR=1 ;;
+		-d|--delay)
+			shift 1
+			DELAY="$1"
+		;;
+		-*)
+			echo "Unknown flag '${1}'"
+			show_help
+			exit 1
+			;;
+		*)  break ;;
+	esac
+	shift 1
+done
+
+CONDITION="${1:-ready}"
+if [ "${#}" -eq 0 ]; then
+    show_help | awk '/Condition/,0'
+	printf "condition [%s] > " "${CONDITION}"
+	read -r input
+	CONDITION="${input:-"${CONDITION}"}"
+fi
+
+case "${CONDITION}" in
+	a|approved) CONDITION="approved" ;;
+	g|ci_green) CONDITION="ci_green" ;;
+	c|ci_completed) CONDITION="ci_completed" ;;
+	d|deployed) CONDITION="deployed" ;;
+	r|ready) CONDITION="ready" ;;
+	m|merged) CONDITION="merged" ;;
+	*)
+		echo "Unknown condition '${CONDITION}'"
+		show_help
+		exit 1
+		;;
+esac
+
+shift 1 || true
+
+URL="${*}"
+if [ -z "${URL}" ]; then
+	URL="$(get_pr "Enter PR URL to wait to be ${CONDITION}:")"
+fi
+
+function p_green() { printf "\033[0;32m✓ %s\033[0m\n" "${*}"; }
+function p_yellow() { printf "\033[0;33m* %s\033[0m\n" "${*}"; }
+
+function check_ci_green(){
+	gh pr checks "${URL}" && checks_passed=0 || checks_passed=1
+
+	if [ "${checks_passed}" == "0" ]; then
+		p_green "PR CI is green"
+	else
+		p_yellow "PR CI is not green"
+	fi
+
+	return "${checks_passed}"
+}
+
+function check_ci_completed(){
+	gh pr checks "${URL}"
+	gh pr view --json statusCheckRollup \
+		-q '.statusCheckRollup[].status' "${URL}" \
+		| grep 'IN_PROGRESS' >/dev/null && ci_completed=1 || ci_completed=0
+
+	if [ "${ci_completed}" == "0" ]; then
+		p_green "PR CI has completed"
+	else
+		p_yellow "PR CI has not completed"
+	fi
+
+	return "${ci_completed}"
+}
+
+function check_approved() {
+	missing_approvals_count="$(gh pr view "${URL}" --json reviewRequests -q '.reviewRequests | length')"
+	if [ "${missing_approvals_count}" == "0" ]; then
+		p_green "All required approvals are done"
+	else
+		p_yellow "${missing_approvals_count} remaining approvals needed"
+	fi
+
+	return "${missing_approvals_count}"
+}
+
+function check_ready() {
+    ready=0
+	if ! check_ci_green; then ready=1; fi
+	if ! check_approved; then ready=1; fi
+
+	if [ "${ready}" == "0" ]; then
+		p_green "PR is ready"
+	else
+		p_yellow "PR not ready yet"
+	fi
+
+	return "${ready}"
+}
+
+function check_merged() {
+	is_merged=$(gh pr view "${URL}" --json state -q '.state | contains("MERGED")')
+	if [ "${is_merged}" == "true" ]; then
+		p_green "PR is merged"
+		return 0
+	fi
+
+	p_yellow "PR not merged yet"
+	return 1
+}
+
+function check_deployed(){
+	set -x
+	data="$(gh pr view "${URL}" --json headRefOid,headRepository,headRepositoryOwner -q '"\(.headRefOid) \(.headRepositoryOwner.login)/\(.headRepository.name)"')"
+
+	sha="${data%% *}"
+	repo="${data##* }"
+
+	gh api "/repos/${repo}/deployments" -f "ref=${sha}" -q '.url'
+
+	return 0
+}
+
+while true; do
+	[ "${CLEAR}" == "1" ] && clear
+
+	echo "Checking PR ${URL} to be ${CONDITION}..."
+
+	"check_${CONDITION}" && break
+
+	printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '─'
+
+	sleep "${DELAY}"
+done

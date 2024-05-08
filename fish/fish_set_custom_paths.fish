@@ -21,4 +21,7 @@ function fish_set_custom_paths --description "Set my current PATH variables"
     # Brew: Unversioned symlinks for python, python-config, pip etc.
     fish_add_path (brew --prefix python)/libexec/bin
 
+    # Commands
+    fish_add_path ~/.commands
+
 end

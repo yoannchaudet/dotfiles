@@ -5,6 +5,11 @@
               create: true
 - clean: ["~"]
 
+# Commands
+- link:
+        ~/.commands:
+              path: commands
+
 # Brew + shell/fish
 - brew:
         - fish
@@ -29,7 +34,6 @@
         - [fonts/install_monoki.sh, Install Monoki Nerd Font]
 
 # Iterm2
-
 - brew:
         - iterm2
 - link:
