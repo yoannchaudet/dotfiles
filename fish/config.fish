@@ -13,4 +13,8 @@ if status --is-interactive
   # Set custom paths
   fish_set_custom_paths
 
+  # Various alias
+  alias cdwr="cd ~/work-repos/"
+  alias cdpr="cd ~/personal-repos/"
+
 end
