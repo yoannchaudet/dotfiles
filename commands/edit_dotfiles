@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Open the dotfiles directory in VS Code
+dotfiles_dir=~/personal-repos/dotfiles
+[ -d "$dotfiles_dir" ] && code "$dotfiles_dir"
