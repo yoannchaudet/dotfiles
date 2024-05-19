@@ -70,6 +70,7 @@
         - difftastic
         - hexyl
         - imagemagick
+        - exiftool
 
         # Work related stuff
         - adr-tools
