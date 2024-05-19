@@ -22,6 +22,9 @@
         - prusaslicer
         - orcaslicer
 
+        # Backups
+        - synology-drive
+
         # Photos
         - dupeguru
 
