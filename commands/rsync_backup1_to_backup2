@@ -21,4 +21,4 @@ Rsync memories from:
 Destination: $destination
 
 EOF
-rsync -av --delete "$source" "$destination"  "$@"
+rsync -av --delete "$source" "$destination" "$@"
