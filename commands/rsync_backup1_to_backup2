@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Rsync memories from backup1 to backup2
+source="/Volumes/backup1/memories/"
+destination="/Volumes/backup2/memories/"
+
+# Validate source and destination exists
+if [ ! -d "$source" ]; then
+  echo "Source does not exist: $source"
+  exit 1
+elif [ ! -d "$destination" ]; then
+  echo "Destination does not exist: $destination"
+  exit 1
+fi
+
+# Rsync
+cat << EOF
+Rsync memories from:
+
+     Source: $source
+Destination: $destination
+
+EOF
+rsync -av --delete "$source" "$destination"  "$@"
