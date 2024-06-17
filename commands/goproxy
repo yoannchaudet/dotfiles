@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+cat <<EOF
+Your GOPROXY Personal Access Token (PAT) has expired?
+
+Renew it then paste it in your ~/.netrc file. 😉
+
+More info: https://github.com/github/goproxy/blob/main/doc/user.md
+EOF
