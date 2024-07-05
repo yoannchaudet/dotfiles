@@ -24,4 +24,10 @@ function fish_set_custom_paths --description "Set my current PATH variables"
     # Commands
     fish_add_path ~/.commands
 
+    # Dotnet tools
+    set dotnet_tools ~/.dotnet/tools
+    if test -d $dotnet_tools
+        fish_add_path $dotnet_tools
+    end
+
 end
