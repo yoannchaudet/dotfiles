@@ -71,6 +71,7 @@
         - hexyl
         - imagemagick
         - exiftool
+        - homeport/tap/dyff
 
         # Work related stuff
         - adr-tools
@@ -102,11 +103,13 @@
                 Outputing allowedSignersFile for Git,
           ]
         - [ git/setup_sockets.sh, Create SSH sockets folder ]
+        - [ git/setup_gitattributes.sh, Setup global gitattributes ]
         - [git lfs install, Enable Git LFS]
 - link:
         ~/.gitconfig: git/gitconfig
         ~/.gitconfig-work: git/gitconfig-work
         ~/.gitignore: git/gitignore
+        ~/.gitattributes: git/gitattributes
 
 # Rust
 

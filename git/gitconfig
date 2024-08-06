@@ -16,6 +16,7 @@
 [core]
 	editor = code --wait
 	excludesfile = ~/.gitignore
+	attributesfile = /Users/yoannchaudet/.gitattributes
 [alias]
 	# Source: https://haacked.com/archive/2014/07/28/github-flow-aliases/
 	co = checkout
@@ -49,6 +50,10 @@
 	format = ssh
 [gpg "ssh"]
 	allowedSignersFile = ~/.gitAllowedSignersFile
+
+# Better diff for yaml
+[diff "dyff"]
+	command = "dyff_between() { dyff --color on between --omit-header \"$2\" \"$5\"; }; dyff_between"
 
 # Work
 [includeIf "gitdir:~/work-repos/"]
