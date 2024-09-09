@@ -55,6 +55,7 @@
         - python
         - go
         - orbstack
+        - rbenv
 
         # Hugo: mpchaudet.art, mavensoul.studio
         - hugo
