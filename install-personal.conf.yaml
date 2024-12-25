@@ -19,14 +19,15 @@
 
         # CAD + 3D printing
         - autodesk-fusion360
-        - prusaslicer
+        # - prusaslicer
         - orcaslicer
 
         # Backups
-        - synology-drive
+        # - synology-drive
 
         # Photos
         - dupeguru
+        - adobe-creative-cloud
 
         # Misc
         - jump-desktop-connect
