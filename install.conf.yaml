@@ -90,6 +90,7 @@
         - powershell
         - visual-studio-code
         - dotnet-sdk
+        - jetbrains-toolbox
 
         # Misc
         - microsoft-edge

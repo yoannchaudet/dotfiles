@@ -21,3 +21,10 @@ Host shell
    ForwardAgent yes
    ProxyJump bastion.githubapp.com
    User yoannchaudet
+
+#
+# Binggan
+#
+Host binggan
+  Hostname binggan.qingy.icu
+  User binggan
