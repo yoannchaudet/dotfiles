@@ -10,6 +10,9 @@
         # Binggan
         - ansible
 
+        # Web dev
+        - sass/sass/sass
+
 - cask:
         # Books
         - calibre
