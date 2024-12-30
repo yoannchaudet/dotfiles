@@ -56,6 +56,7 @@
         - go
         - orbstack
         - rbenv
+        - tfenv
 
         # Hugo: mpchaudet.art, mavensoul.studio
         - hugo
