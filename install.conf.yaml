@@ -57,6 +57,7 @@
         - orbstack
         - rbenv
         - tfenv
+        - azure-cli
 
         # Hugo: mpchaudet.art, mavensoul.studio
         - hugo
