@@ -57,6 +57,7 @@
         - orbstack
         - rbenv
         - tfenv
+        - tflint
         - azure-cli
 
         # Hugo: mpchaudet.art, mavensoul.studio
@@ -93,6 +94,7 @@
         - visual-studio-code
         - dotnet-sdk
         - jetbrains-toolbox
+        - microsoft-azure-storage-explorer
 
         # Misc
         - microsoft-edge
