@@ -23,8 +23,18 @@ Host shell
    User yoannchaudet
 
 #
-# Binggan
+# Binggan (home server)
 #
 Host binggan
   Hostname binggan.qingy.icu
   User binggan
+
+#
+# Baobei (NAS)
+# Note: baobei.binggan.qingy.icu is the UX but it is proxied
+# by binggan.
+#
+Host baobei
+  Hostname 192.168.1.2
+  User yoann
+  Port 2511
