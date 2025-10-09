@@ -58,3 +58,5 @@
 # Work
 [includeIf "gitdir:~/work-repos/"]
 	path = ~/.gitconfig-work
+[safe]
+	directory = *

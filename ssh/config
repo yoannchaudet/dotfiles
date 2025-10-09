@@ -17,6 +17,18 @@ Host github.com *.github.net *.githubapp.com
   ForwardAgent no
   User yoannchaudet
 Host shell
+   # Hostname shell.service.ac4-iad.github.net
+   Hostname ce-shell-82fb3b2.ac4-iad.github.net
+   ForwardAgent yes
+   ProxyJump bastion.githubapp.com
+   User yoannchaudet
+Host shell2
+   # Hostname shell.service.ac4-iad.github.net
+   Hostname ce-shell-5cefc67.va3-iad.github.net
+   ForwardAgent yes
+   ProxyJump bastion.githubapp.com
+   User yoannchaudet
+Host old-shell
    Hostname shell.service.ac4-iad.github.net
    ForwardAgent yes
    ProxyJump bastion.githubapp.com
