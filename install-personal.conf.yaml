@@ -22,8 +22,6 @@
 
         # CAD + 3D printing
         - autodesk-fusion360
-        # - prusaslicer
-        - orcaslicer
 
         # Backups
         # - synology-drive
