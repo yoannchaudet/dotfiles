@@ -16,7 +16,7 @@
 [core]
 	editor = code --wait
 	excludesfile = ~/.gitignore
-	attributesfile = ~/.gitattributes
+	attributesfile = /Users/yoannchaudet/.gitattributes
 [alias]
 	# Source: https://haacked.com/archive/2014/07/28/github-flow-aliases/
 	co = checkout

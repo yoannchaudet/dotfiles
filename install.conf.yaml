@@ -93,14 +93,12 @@
         - powershell
         - visual-studio-code
         - dotnet-sdk
-        - jetbrains-toolbox
         - microsoft-azure-storage-explorer
 
         # Misc
         - microsoft-edge
         - obsidian
         - google-drive
-        - arc
 
 # Git + commit signing with SSH
 
