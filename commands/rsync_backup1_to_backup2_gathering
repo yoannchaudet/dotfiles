@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# Rsync gathering from backup1 to backup2
+source="/Volumes/backup1/gathering/"
+destination="baobei:/volume1/backup2/gathering/"
+
+# Validate source and destination exists
+if [ ! -d "$source" ]; then
+  echo "Source does not exist: $source"
+  exit 1
+fi
+
+# Rsync
+cat << EOF
+Rsync gathering from:
+
+     Source: $source
+Destination: $destination
+
+EOF
+rsync -av --delete \
+  --exclude='*@SynoEAStream' --exclude='@eaDir/' \
+  "$source" "$destination" "$@"

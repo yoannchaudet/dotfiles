@@ -29,3 +29,7 @@ end
 if test -f ~/.orbstack/shell/init2.fish
   source ~/.orbstack/shell/init2.fish
 end
+
+# Added by get-aspire-cli.sh
+fish_add_path $HOME/.aspire/bin
+export PATH="$HOME/.local/bin:$PATH"
