@@ -29,20 +29,20 @@
         - [fish/install_tide.sh, Install Tide]
         - [echo yes | fish_config theme save dracula, Set theme to Dracula]
 
+# Shell
+
+- cask:
+        - ghostty
+- link:
+        ~/.config/ghostty/config: ghostty/config
+
 # Fonts
+
 - shell:
         - [fonts/install_monoki.sh, Install Monoki Nerd Font]
 
-# Iterm2
-- brew:
-        - iterm2
-- link:
-        ~/.config/iterm2/com.googlecode.iterm2.plist:
-              path: iterm2/com.googlecode.iterm2.plist
-- shell:
-        - [iterm2/set_settings.sh, Set Iterm2 settings]
-
 # More Brew
+
 - brew:
         # Git / gh
         - git
