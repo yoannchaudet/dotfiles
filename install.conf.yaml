@@ -77,6 +77,9 @@
         - exiftool
         - homeport/tap/dyff
 
+        # AI stuff
+        - anomalyco/tap/opencode
+
         # Work related stuff
         - adr-tools
 
