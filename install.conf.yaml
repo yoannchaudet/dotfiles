@@ -79,6 +79,7 @@
 
         # AI stuff
         - anomalyco/tap/opencode
+        - copilot-cli@prerelease
 
         # Work related stuff
         - adr-tools
