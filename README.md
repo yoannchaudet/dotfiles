@@ -18,15 +18,24 @@ first init.
     brew install chezmoi
     ```
 
-3. **Create your SSH key** (used for both Git signing and GitHub auth):
+3. **Set up your SSH key in Bitwarden** (used for both Git signing and
+   GitHub auth):
 
-    ```sh
-    ssh-keygen -t ed25519 -C "<comment>"
-    cat ~/.ssh/id_ed25519.pub | pbcopy
-    ```
+    - Install the Bitwarden desktop app and sign in.
+    - In **Settings → SSH agent**, enable *Use Bitwarden as SSH agent*.
+    - Create (or import) an SSH key item in your vault.
+    - Copy the public key from the Bitwarden item and save it to
+      `~/.ssh/id_ed25519.pub` (Git signing reads this file — see
+      `dot_gitconfig.tmpl`). Then `pbcopy < ~/.ssh/id_ed25519.pub` and
+      upload it to your GitHub account twice — as an *SSH key* **and**
+      as a *signing key*.
+    - The Homebrew cask install of Bitwarden exposes the agent socket
+      at `~/.bitwarden-ssh-agent.sock`; both `~/.ssh/config`
+      (`IdentityAgent`) and fish (`SSH_AUTH_SOCK`) point at it.
 
-    Upload to your GitHub account twice — as an *SSH key* **and** as a
-    *signing key*.
+    Bitwarden must be **running and unlocked** for SSH auth and Git
+    signing to work; every use surfaces an approval prompt in the
+    desktop app.
 
 4. **Bootstrap with chezmoi**:
 
@@ -71,5 +80,9 @@ chezmoi apply               # re-render templates, re-run brew bundle
 - [`Fish`](https://fishshell.com/) is my shell and [`Tide`](https://github.com/IlanCosman/tide) its prompt
 - [`Dracula`](https://draculatheme.com/) is the terminal theme
 - Git commits are signed with the SSH key
+- SSH keys live in [Bitwarden](https://bitwarden.com/help/ssh-agent/);
+  fish exports `SSH_AUTH_SOCK` and `~/.ssh/config` sets `IdentityAgent`
+  to Bitwarden's Unix socket so both shell and GUI clients route through
+  it. Bitwarden desktop must be running and unlocked.
 - See [`AGENTS.md`](./AGENTS.md) for the layout of this repo and how to
   modify it

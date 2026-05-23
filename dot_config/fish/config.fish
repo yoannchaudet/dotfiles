@@ -12,8 +12,12 @@ if status --is-interactive
     . (rbenv init -|psub)
   end
 
-  # Start SSH-AGENT (if not done already)
-  fish_ssh_agent
+  # Use Bitwarden Desktop as the SSH agent (https://bitwarden.com/help/ssh-agent/).
+  # Bitwarden must be running and unlocked for SSH auth/signing to work.
+  set -l bw_ssh_sock "$HOME/.bitwarden-ssh-agent.sock"
+  if test -S "$bw_ssh_sock"
+    set -gx SSH_AUTH_SOCK "$bw_ssh_sock"
+  end
 
   # Set custom paths
   fish_set_custom_paths
