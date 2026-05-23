@@ -1,0 +1,84 @@
+# Brewfile (managed by chezmoi)
+# Edit dot_Brewfile.tmpl in the dotfiles repo, then run `chezmoi apply`.
+# `brew bundle --global` is re-run automatically by run_onchange_after_20-brew-bundle.sh.tmpl.
+
+#
+# Shared (installed on every machine)
+#
+
+# Shell & terminal
+brew "fish"
+cask "ghostty"
+
+# Git / GitHub
+brew "git"
+brew "git-lfs"
+brew "git-crypt"
+brew "gnupg"
+brew "gh"
+
+# Languages & dev tools
+brew "python"
+brew "go"
+cask "orbstack"
+brew "rbenv"
+brew "tfenv"
+brew "tflint"
+
+# Static site / web
+brew "hugo"
+brew "sass/sass/sass"
+
+# Modern CLI utilities
+brew "wget"
+brew "tree"
+brew "bat"
+brew "fd"
+brew "ripgrep"
+brew "yq"
+brew "difftastic"
+brew "hexyl"
+brew "imagemagick"
+brew "exiftool"
+brew "homeport/tap/dyff"
+
+# AI tooling
+brew "anomalyco/tap/opencode"
+# brew "copilot-cli"
+
+# GUI utilities
+cask "bitwarden"
+cask "clipy"
+cask "shottr"
+cask "google-drive"
+cask "itsycal"
+cask "rectangle"
+
+# Editors & browsers
+cask "visual-studio-code"
+cask "microsoft-edge"
+cask "obsidian"
+
+{{ if eq .profile "work" -}}
+#
+# Work only
+#
+brew "azure-cli"
+brew "adr-tools"
+cask "powershell"
+cask "dotnet-sdk"
+cask "microsoft-azure-storage-explorer"
+{{- end }}
+
+{{ if eq .profile "personal" -}}
+#
+# Personal only
+#
+brew "ansible"
+cask "calibre"
+cask "vlc"
+cask "autodesk-fusion"
+cask "dupeguru"
+cask "adobe-creative-cloud"
+cask "jump-desktop-connect"
+{{- end }}

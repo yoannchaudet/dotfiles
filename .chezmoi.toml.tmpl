@@ -1,0 +1,12 @@
+{{/*
+  Prompt-once profile selection.
+  Runs the first time `chezmoi init` is executed on a machine.
+  The answer is persisted to ~/.config/chezmoi/chezmoi.toml.
+  To change later: `chezmoi edit-config` then `chezmoi apply`.
+  Non-interactive override: `chezmoi init --promptChoice profile=work ...`
+*/ -}}
+{{- $profile := promptChoiceOnce . "profile" "Is this a work or personal machine?" (list "work" "personal") -}}
+
+[data]
+    profile  = {{ $profile | quote }}
+    hostname = {{ .chezmoi.hostname | quote }}

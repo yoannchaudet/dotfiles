@@ -1,63 +1,74 @@
 # My very own `dotfiles`
 
-A repository to bootstrap my MacOS machine (dev environment and more general apps I use or like).
-
-I could have used [Ansible](https://www.ansible.com/) playbooks but I felt like trying something else.
+macOS setup managed by [chezmoi](https://www.chezmoi.io/). One repo, one
+command, two flavors (work / personal) selected by an interactive prompt at
+first init.
 
 ## Platforms
 
-- MacOS (main target)
-- GitHub Codespaces (diluted target, not setup yet)
+- macOS (sole target).
 
-## Setup
+## Setup on a fresh machine
 
-1. Install `brew` (see [instructions](https://brew.sh))
+1. **Install Homebrew** — <https://brew.sh>.
 
-1. Clone this repository
+2. **Install `chezmoi`**:
 
-   You need `git` already installed on your machine, on MacOS, you have a default version packaged by Apple. It is part of the dev tools which may need to be installed first (the OS will prompt you as needed).
+    ```sh
+    brew install chezmoi
+    ```
 
-2. Run the following script to install [Bitwarden](https://bitwarden.com/) (your password manager):
+3. **Create your SSH key** (used for both Git signing and GitHub auth):
 
-   ```sh
-   ./bootstrap
-   ```
+    ```sh
+    ssh-keygen -t ed25519 -C "<comment>"
+    cat ~/.ssh/id_ed25519.pub | pbcopy
+    ```
 
-3. Create a new SSH key with:
+    Upload to your GitHub account twice — as an *SSH key* **and** as a
+    *signing key*.
 
-   ```sh
-   ssh-keygen -t ed25519 -C "<comment>"
-   ```
+4. **Bootstrap with chezmoi**:
 
-   Copy the public key with:
+    ```sh
+    chezmoi init --apply git@github.com:yoannchaudet/dotfiles.git
+    ```
 
-   ```sh
-   cat ~/.ssh/id_ed25519.pub | pbcopy
-   ```
+    You will be asked once:
 
-   Upload it to your GitHub account twice, as a SSH key and as a signing key.
+    > Is this a work or personal machine? \[work / personal\]
 
-4. Finally, you can run this last script to bootstrap your machine:
+    The answer is saved to `~/.config/chezmoi/chezmoi.toml` and drives which
+    Homebrew packages are installed, among other things.
 
-   ```sh
-   ./install
-   ```
+    Everything else (symlinks, Brewfile install, Fish + Tide + Dracula theme,
+    Mononoki font, Git signing setup, Rust) is taken care of by `chezmoi
+    apply`.
 
-   You will need to sign out and sign in again for some settings to apply.
+5. Sign out and back in for shell / theme changes to fully apply. 🤘
 
-   Most apps will be installed already and your shell all setup.
+## Day-to-day commands
 
-   For extra personal things (non-work):
+| Command | What it does |
+| --- | --- |
+| `chezmoi edit <target>`     | Edit a managed file via the source (auto-syncs) |
+| `chezmoi diff`              | Preview pending changes |
+| `chezmoi apply`             | Apply pending changes (run scripts as needed) |
+| `chezmoi update`            | `git pull` the dotfiles repo, then `apply` |
+| `chezmoi cd`                | Drop into the source tree (the repo) |
+| `chezmoi edit-config`       | Edit `~/.config/chezmoi/chezmoi.toml` (e.g. switch profile) |
 
-   ```sh
-   ./install-personal
-   ```
+## Switching profile later
 
-   🤘
+```sh
+chezmoi edit-config         # change profile = "..."
+chezmoi apply               # re-render templates, re-run brew bundle
+```
 
 ## Notes
 
-- I use [`Dotbot`](https://github.com/anishathalye/dotbot) to manage this whole repository
-- [`Git`](https://git-scm.com/doc) is setup to sign commits with my SSH key
-- [`Fish`](https://fishshell.com/) is my shell and [`Tide``](https://github.com/IlanCosman/tide) its prompt
-- [`Dracula`](https://draculatheme.com/) is my terminal theme
+- [`Fish`](https://fishshell.com/) is my shell and [`Tide`](https://github.com/IlanCosman/tide) its prompt
+- [`Dracula`](https://draculatheme.com/) is the terminal theme
+- Git commits are signed with the SSH key
+- See [`AGENTS.md`](./AGENTS.md) for the layout of this repo and how to
+  modify it

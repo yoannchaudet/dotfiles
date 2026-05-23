@@ -1,16 +1,14 @@
 #!/usr/bin/env fish
+# Install and configure the Tide prompt.
 
-# Plugin to install
 set tide_plugin "ilancosman/tide"
 set tide_version "@main"
 
-# Check what is currently installed
 set installed (fisher list | grep $tide_plugin)
 
-# Install if needed
 if test "$installed" = "$tide_plugin$tide_version"
   echo "Tide is already installed"
-  return
+  exit 0
 else
   if test -n "$installed"
     echo "Removing old version of Tide ($installed)"
