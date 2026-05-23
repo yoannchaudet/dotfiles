@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# brew_drift — list Homebrew packages installed on this machine but not
+# tracked in the dotfiles Brewfile. Reads the chezmoi source template
+# (dot_Brewfile.tmpl) when available so the comparison spans every
+# profile (work + personal); otherwise falls back to the rendered
+# ~/.Brewfile, which only reflects the current profile.
+#
+# Usage:
+#   brew_drift            # grouped, human-readable output
+#   brew_drift --quiet    # plain names, one per line, no headers
+#   brew_drift -h|--help  # show help
+#
+# Exit codes:
+#   0  no drift
+#   1  drift detected
+#   2  usage / environment error
+
+set -euo pipefail
+
+QUIET=0
+for arg in "$@"; do
+  case "$arg" in
+    -q | --quiet) QUIET=1 ;;
+    -h | --help)
+      sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "brew_drift: unknown argument: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if ! command -v brew >/dev/null 2>&1; then
+  echo "brew_drift: 'brew' not found on PATH" >&2
+  exit 2
+fi
+
+# Prefer the chezmoi source template so the comparison covers ALL profiles
+# (work + personal), not just whatever the current profile renders. Falls
+# back to the rendered ~/.Brewfile if chezmoi isn't available.
+BREWFILE=""
+if command -v chezmoi >/dev/null 2>&1; then
+  BREWFILE="$(chezmoi source-path "$HOME/.Brewfile" 2>/dev/null || true)"
+fi
+if [[ -z "$BREWFILE" || ! -f "$BREWFILE" ]]; then
+  BREWFILE="${HOMEBREW_BUNDLE_FILE:-$HOME/.Brewfile}"
+fi
+if [[ ! -f "$BREWFILE" ]]; then
+  echo "brew_drift: Brewfile not found at $BREWFILE" >&2
+  echo "            (run 'chezmoi apply' to render it)" >&2
+  exit 2
+fi
+
+# Parse tracked names from the Brewfile.
+# - Strip comments
+# - Match `brew "name"` and `cask "name"`
+# - For formulae, strip optional tap prefix (e.g. user/tap/name -> name)
+tracked_formulae="$(
+  sed -E 's/[[:space:]]*#.*$//' "$BREWFILE" \
+    | awk -F'"' '/^[[:space:]]*brew[[:space:]]+"/ {print $2}' \
+    | awk -F'/' '{print $NF}' \
+    | sort -u
+)"
+
+tracked_casks="$(
+  sed -E 's/[[:space:]]*#.*$//' "$BREWFILE" \
+    | awk -F'"' '/^[[:space:]]*cask[[:space:]]+"/ {print $2}' \
+    | awk -F'/' '{print $NF}' \
+    | sort -u
+)"
+
+# What is installed.
+# `brew leaves` lists formulae that are not dependencies of any other formula,
+# which is the closest match to "things I asked for".
+# Strip tap prefix from `brew leaves` output too (e.g. homeport/tap/dyff -> dyff)
+# so it matches the normalized tracked list.
+installed_formulae="$(brew leaves 2>/dev/null | awk -F'/' '{print $NF}' | sort -u)"
+installed_casks="$(brew list --cask -1 2>/dev/null | awk -F'/' '{print $NF}' | sort -u)"
+
+# Diff: installed - tracked
+drift_formulae="$(comm -23 <(printf '%s\n' "$installed_formulae") <(printf '%s\n' "$tracked_formulae"))"
+drift_casks="$(comm -23 <(printf '%s\n' "$installed_casks") <(printf '%s\n' "$tracked_casks"))"
+
+# Trim possible leading/trailing blank lines.
+drift_formulae="$(printf '%s' "$drift_formulae" | sed '/^$/d')"
+drift_casks="$(printf '%s' "$drift_casks" | sed '/^$/d')"
+
+if [[ -z "$drift_formulae" && -z "$drift_casks" ]]; then
+  (( QUIET )) || echo "No drift: every installed leaf/cask is tracked in $BREWFILE."
+  exit 0
+fi
+
+if (( QUIET )); then
+  [[ -n "$drift_formulae" ]] && printf '%s\n' "$drift_formulae"
+  [[ -n "$drift_casks" ]]    && printf '%s\n' "$drift_casks"
+else
+  if [[ -n "$drift_formulae" ]]; then
+    echo "Formulae not in Brewfile:"
+    printf '  - %s\n' $drift_formulae
+  fi
+  if [[ -n "$drift_casks" ]]; then
+    [[ -n "$drift_formulae" ]] && echo
+    echo "Casks not in Brewfile:"
+    printf '  - %s\n' $drift_casks
+  fi
+fi
+
+exit 1

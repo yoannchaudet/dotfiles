@@ -57,6 +57,7 @@ first init.
 | `chezmoi update`            | `git pull` the dotfiles repo, then `apply` |
 | `chezmoi cd`                | Drop into the source tree (the repo) |
 | `chezmoi edit-config`       | Edit `~/.config/chezmoi/chezmoi.toml` (e.g. switch profile) |
+| `brew_drift`                | List Homebrew leaves / casks installed but not in `~/.Brewfile` |
 
 ## Switching profile later
 

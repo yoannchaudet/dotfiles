@@ -6,6 +6,9 @@
 # Shared (installed on every machine)
 #
 
+# Meta
+brew "chezmoi"
+
 # Shell & terminal
 brew "fish"
 cask "ghostty"
@@ -17,68 +20,115 @@ brew "git-crypt"
 brew "gnupg"
 brew "gh"
 
-# Languages & dev tools
-brew "python"
+# Languages & runtimes
 brew "go"
-cask "orbstack"
+brew "python"
 brew "rbenv"
+
+# Containers & VMs
+cask "orbstack"
+
+# Infrastructure / cloud
 brew "tfenv"
 brew "tflint"
+brew "azure-cli"
+cask "microsoft-azure-storage-explorer"
+
+# .NET / PowerShell
+cask "powershell"
+cask "dotnet-sdk"
 
 # Static site / web
 brew "hugo"
 brew "sass/sass/sass"
 
-# Modern CLI utilities
+# Core CLI utilities
 brew "wget"
 brew "tree"
 brew "bat"
 brew "fd"
 brew "ripgrep"
-brew "yq"
 brew "difftastic"
+
+# Data / file inspection
+brew "yq"
 brew "hexyl"
+brew "homeport/tap/dyff"
 brew "imagemagick"
 brew "exiftool"
-brew "homeport/tap/dyff"
 
 # AI tooling
 brew "anomalyco/tap/opencode"
 # brew "copilot-cli"
 
-# GUI utilities
-cask "bitwarden"
+# Editors
+cask "visual-studio-code"
+cask "obsidian"
+
+# Browsers
+cask "microsoft-edge"
+
+# Productivity / window management
+cask "rectangle"
+cask "itsycal"
 cask "clipy"
 cask "shottr"
-cask "google-drive"
-cask "itsycal"
-cask "rectangle"
 
-# Editors & browsers
-cask "visual-studio-code"
-cask "microsoft-edge"
-cask "obsidian"
+# Security & storage
+cask "bitwarden"
+cask "google-drive"
 
 {{ if eq .profile "work" -}}
 #
 # Work only
 #
-brew "azure-cli"
+
+# Architecture / process
 brew "adr-tools"
-cask "powershell"
-cask "dotnet-sdk"
-cask "microsoft-azure-storage-explorer"
 {{- end }}
 
 {{ if eq .profile "personal" -}}
 #
 # Personal only
 #
+
+# Shell extras
+brew "bash"
+
+# Languages & dev tools (extras)
+brew "node"
+brew "python@3.11"
+brew "uv"
+brew "xcodegen"
+
+# DevOps / infra (extras)
 brew "ansible"
+brew "rclone"
+brew "vegeta"
+
+# Diagramming
+brew "d2"
+
+# Embedded / home automation
+brew "esphome"
+brew "platformio"
+
+# Media & document tooling (CLI)
+brew "ghostscript"
+brew "icloudpd"
+brew "czkawka"
+
+# Creative / 3D
+cask "blender"
+# cask "autodesk-fusion"
+cask "adobe-creative-cloud"
+
+# Media players & library
 cask "calibre"
 cask "vlc"
-cask "autodesk-fusion"
+cask "spotify"
+
+# Utilities
 cask "dupeguru"
-cask "adobe-creative-cloud"
 cask "jump-desktop-connect"
 {{- end }}
