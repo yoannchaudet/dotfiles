@@ -43,6 +43,7 @@ brew "hugo"
 brew "sass/sass/sass"
 
 # Core CLI utilities
+brew "curl"
 brew "wget"
 brew "tree"
 brew "bat"
@@ -86,6 +87,16 @@ cask "google-drive"
 
 # Architecture / process
 brew "adr-tools"
+
+# Cloud
+brew "awscli"
+
+# Core CLI utilities
+brew "gnu-tar"
+
+# Dev tooling
+brew "gomplate"
+brew "shellcheck"
 {{- end }}
 
 {{ if eq .profile "personal" -}}
