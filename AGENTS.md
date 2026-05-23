@@ -87,6 +87,12 @@ Edit `dot_Brewfile.tmpl`. Pick the right section:
 - Inside `{{ if eq .profile "work" -}}` — work-only.
 - Inside `{{ if eq .profile "personal" -}}` — personal-only.
 
+Within each profile section, entries are grouped under themed comment
+headers (e.g. `# Shell & terminal`, `# Git / GitHub`, `# AI tooling`). Add
+new entries to the most appropriate existing group, or introduce a new
+themed header if none fits. Keep related `brew` and `cask` entries together
+within the same theme rather than splitting by type.
+
 Then:
 
 ```sh
