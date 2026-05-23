@@ -34,7 +34,7 @@ After cloning, `chezmoi init` reads it directly.
 ├── run_onchange_after_20-brew-bundle.sh.tmpl# `brew bundle --global` (reruns on Brewfile change)
 ├── run_once_after_30-make-fish-default.sh.tmpl
 ├── run_once_after_40-install-fisher.sh.tmpl
-├── run_once_after_41-install-tide.sh.tmpl
+├── run_onchange_after_41-install-tide.sh.tmpl
 ├── run_once_after_42-dracula-theme.sh.tmpl
 ├── run_once_after_50-install-monoki-font.sh.tmpl
 ├── run_once_after_60-git-signing-setup.sh.tmpl
