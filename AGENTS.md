@@ -23,7 +23,6 @@ After cloning, `chezmoi init` reads it directly.
 │   ├── fish/
 │   │   ├── config.fish                      # → ~/.config/fish/config.fish
 │   │   └── functions/
-│   │       ├── fish_ssh_agent.fish
 │   │       └── fish_set_custom_paths.fish
 │   └── ghostty/config                       # → ~/.config/ghostty/config
 ├── private_dot_ssh/config                   # → ~/.ssh/config (dir gets 0700)
