@@ -5,7 +5,9 @@
   To change later: `chezmoi edit-config` then `chezmoi apply`.
   Non-interactive override: `chezmoi init --promptChoice profile=work ...`
 */ -}}
-{{- $profile := promptChoiceOnce . "profile" "Is this a work or personal machine?" (list "work" "personal") -}}
+{{- $choices := list "work" "personal" -}}
+{{- $prompt := printf "Machine profile? Type 'work' or 'personal' (choices: %s)" (join ", " $choices) -}}
+{{- $profile := promptChoiceOnce . "profile" $prompt $choices -}}
 
 [data]
     profile  = {{ $profile | quote }}
