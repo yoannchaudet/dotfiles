@@ -92,6 +92,13 @@ new entries to the most appropriate existing group, or introduce a new
 themed header if none fits. Keep related `brew` and `cask` entries together
 within the same theme rather than splitting by type.
 
+Before adding an entry, verify whether the package is a formula or a cask
+so you use the correct `brew "..."` vs `cask "..."` directive. For example:
+
+```sh
+brew info --json=v2 <name> | jq -r 'if .formulae|length>0 then "formula" elif .casks|length>0 then "cask" else "unknown" end'
+```
+
 Then:
 
 ```sh
