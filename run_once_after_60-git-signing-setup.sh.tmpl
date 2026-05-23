@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Configure SSH-key based git commit signing.
+set -euo pipefail
+
+# 1. Generate ~/.gitAllowedSignersFile from GitHub-published SSH keys.
+email="c.yoann@gmail.com"
+url="https://github.com/yoannchaudet.keys"
+output_file="$HOME/.gitAllowedSignersFile"
+
+echo "Writing $output_file..."
+curl -s "$url" | while IFS= read -r line; do
+  echo "$email $line"
+done > "$output_file"
+
+# 2. SSH control sockets directory.
+mkdir -p "$HOME/.ssh/sockets"
+chmod 0700 "$HOME/.ssh/sockets"
+
+# 3. Make sure git uses our global attributes file.
+git config --global core.attributesfile "$HOME/.gitattributes"
+
+# 4. Enable Git LFS.
+git lfs install

@@ -1,0 +1,4 @@
+# Top-level repo files that should not be applied as targets.
+README.md
+AGENTS.md
+LICENSE

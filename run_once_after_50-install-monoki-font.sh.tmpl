@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Install the Mononoki Nerd Font (macOS, user-scoped).
+set -euo pipefail
+
+url="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/Mononoki.zip"
+
+if find "$HOME/Library/Fonts" -type f -iname "mononoki*" | grep -q .; then
+  echo "Mononoki already installed"
+  exit 0
+fi
+
+temp_dir=$(mktemp -d)
+trap 'rm -rf "$temp_dir"' EXIT
+
+echo "Downloading font ZIP..."
+curl -L -o "$temp_dir/font.zip" "$url"
+
+echo "Extracting font files..."
+unzip "$temp_dir/font.zip" -d "$temp_dir"
+
+echo "Installing fonts..."
+cp -R "$temp_dir"/*.ttf "$HOME/Library/Fonts"
+
+echo "Fonts installed successfully!"
