@@ -282,9 +282,17 @@ fix_loop() {
   printf '\n'
   gum style --bold "Walking through drifted repos..."
 
-  local quit=false
-  while IFS= read -r line <&3; do
+  # Load drifted repos into an array up front. Reading from a pipe/heredoc
+  # inside the loop is fragile when the body invokes interactive tools or
+  # child processes that may inherit/drain the fd.
+  local -a lines=()
+  while IFS= read -r line; do
     [[ -z "$line" ]] && continue
+    lines+=("$line")
+  done <<<"$drifted_lines"
+
+  local quit=false
+  for line in "${lines[@]}"; do
     if $quit; then
       skipped=$((skipped + 1))
       continue
@@ -321,7 +329,7 @@ fix_loop() {
         quit=true
         ;;
     esac
-  done 3<<<"$drifted_lines"
+  done
 
   printf '\n'
   gum style --bold "Summary"
