@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+#
+# new_gh_repo — create a new GitHub repository under yoannchaudet/ with the
+# settings + default-branch ruleset that match my personal-repo standard.
+#
+# Two modes (auto-detected from $PWD):
+#
+#   1. CWD is the root of a git worktree with no `origin` remote:
+#      offer to create yoannchaudet/<basename>, push the current contents,
+#      and apply settings + ruleset.
+#
+#   2. CWD is anywhere else:
+#      prompt for a name, create the repo, clone it into
+#      ~/personal-repos/<name>, and apply settings + ruleset.
+#
+# Usage:
+#   new_gh_repo [-h|--help]
+
+set -euo pipefail
+
+readonly OWNER="yoannchaudet"
+readonly PERSONAL_REPOS="${HOME}/personal-repos"
+
+usage() {
+  cat <<'EOF'
+new_gh_repo — create a new GitHub repository under yoannchaudet/ with the
+settings + default-branch ruleset that match my personal-repo standard.
+
+Two modes (auto-detected from $PWD):
+
+  1. CWD is the root of a git worktree with no `origin` remote:
+     offer to create yoannchaudet/<basename>, push the current contents,
+     and apply settings + ruleset.
+
+  2. CWD is anywhere else:
+     prompt for a name, create the repo, clone it into
+     ~/personal-repos/<name>, and apply settings + ruleset.
+
+Usage:
+  new_gh_repo [-h|--help]
+EOF
+}
+
+err() {
+  printf 'new_gh_repo: error: %s\n' "$*" >&2
+}
+
+require() {
+  local cmd=$1
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    err "missing required command: $cmd"
+    case "$cmd" in
+      gum) err "install with: brew install gum" ;;
+      gh)  err "install with: brew install gh" ;;
+    esac
+    exit 1
+  fi
+}
+
+preflight() {
+  require gh
+  require gum
+  require git
+  if ! gh auth status >/dev/null 2>&1; then
+    err "gh is not authenticated. Run: gh auth login"
+    exit 1
+  fi
+}
+
+# Echo "existing" if cwd is the root of a git worktree without an origin,
+# otherwise "new".
+detect_mode() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo new
+    return
+  fi
+  local toplevel
+  toplevel=$(git rev-parse --show-toplevel)
+  if [[ "$toplevel" != "$PWD" ]]; then
+    echo new
+    return
+  fi
+  if git remote get-url origin >/dev/null 2>&1; then
+    echo new
+    return
+  fi
+  echo existing
+}
+
+valid_name() {
+  [[ "$1" =~ ^[A-Za-z0-9._-]+$ ]]
+}
+
+prompt_visibility() {
+  local choice
+  choice=$(gum choose --header "Visibility:" --selected="private" private public)
+  echo "$choice"
+}
+
+# $1: name -- prompts for confirmation, exits non-zero if cancelled
+confirm_name() {
+  local name=$1
+  gum confirm "Create github.com/${OWNER}/${name}?"
+}
+
+apply_settings() {
+  local name=$1
+  gum spin --title "Configuring repo settings..." -- \
+    gh repo edit "${OWNER}/${name}" \
+      --delete-branch-on-merge \
+      --enable-auto-merge \
+      --enable-merge-commit \
+      --enable-squash-merge \
+      --enable-rebase-merge \
+      --enable-discussions=false \
+      --enable-wiki=false \
+      --enable-projects=false \
+      >/dev/null
+
+  # Squash commit defaults aren't exposed via `gh repo edit`; PATCH directly.
+  gum spin --title "Configuring squash-merge defaults..." -- \
+    gh api -X PATCH "repos/${OWNER}/${name}" \
+      -f squash_merge_commit_title=COMMIT_OR_PR_TITLE \
+      -f squash_merge_commit_message=COMMIT_MESSAGES \
+      >/dev/null
+}
+
+apply_ruleset() {
+  local name=$1
+  local tmp
+  tmp=$(mktemp -t new_gh_repo_ruleset.XXXXXX.json)
+  # shellcheck disable=SC2064
+  trap "rm -f '$tmp'" RETURN
+  cat >"$tmp" <<'JSON'
+{
+  "name": "default",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
+  },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "copilot_code_review" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["merge", "squash", "rebase"]
+      }
+    }
+  ]
+}
+JSON
+  gum spin --title "Applying default-branch ruleset..." -- \
+    gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null
+}
+
+summary() {
+  local name=$1
+  local path=$2
+  printf '\n'
+  gum style --foreground 212 --bold "✓ ${OWNER}/${name} ready"
+  printf '\n'
+  printf '  URL:      https://github.com/%s/%s\n' "$OWNER" "$name"
+  printf '  Local:    %s\n' "$path"
+  printf '  Settings: delete-branch-on-merge, auto-merge, squash(PR title / commit messages), wiki/projects/discussions off\n'
+  printf '  Ruleset:  default-branch — deletion, non-fast-forward, copilot review, PR required\n'
+  printf '\n'
+}
+
+existing_mode() {
+  local default_name name visibility
+  default_name=$(basename "$PWD")
+
+  name=$(gum input --header "Repo name:" --value "$default_name")
+  if [[ -z "$name" ]]; then
+    err "no name provided"; exit 1
+  fi
+  if ! valid_name "$name"; then
+    err "invalid name: $name"; exit 1
+  fi
+  if ! confirm_name "$name"; then
+    err "aborted"; exit 1
+  fi
+
+  visibility=$(prompt_visibility)
+
+  gh repo create "${OWNER}/${name}" \
+    "--${visibility}" \
+    --source=. \
+    --remote=origin \
+    --push
+
+  apply_settings "$name"
+  apply_ruleset "$name"
+  summary "$name" "$PWD"
+}
+
+new_mode() {
+  local name visibility target
+  name=$(gum input --header "Repo name:" --placeholder "my-new-thing")
+  if [[ -z "$name" ]]; then
+    err "no name provided"; exit 1
+  fi
+  if ! valid_name "$name"; then
+    err "invalid name: $name (allowed: A-Za-z0-9._-)"; exit 1
+  fi
+
+  target="${PERSONAL_REPOS}/${name}"
+  if [[ -e "$target" ]]; then
+    err "$target already exists"; exit 1
+  fi
+  if ! confirm_name "$name"; then
+    err "aborted"; exit 1
+  fi
+
+  visibility=$(prompt_visibility)
+
+  mkdir -p "$PERSONAL_REPOS"
+  (
+    cd "$PERSONAL_REPOS"
+    gh repo create "${OWNER}/${name}" "--${visibility}" --clone
+  )
+
+  apply_settings "$name"
+  apply_ruleset "$name"
+  summary "$name" "$target"
+
+  printf 'Tip: cd %s\n' "$target"
+}
+
+main() {
+  case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+    "") ;;
+    *) err "unknown argument: $1"; usage; exit 1 ;;
+  esac
+
+  preflight
+
+  case "$(detect_mode)" in
+    existing) existing_mode ;;
+    new)      new_mode ;;
+  esac
+}
+
+main "$@"
