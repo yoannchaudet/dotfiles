@@ -18,7 +18,9 @@
 
 set -euo pipefail
 
-readonly OWNER="yoannchaudet"
+# shellcheck source=.gh_repo_standard.sh
+source "${HOME}/.commands/.gh_repo_standard.sh"
+
 readonly PERSONAL_REPOS="${HOME}/personal-repos"
 
 usage() {
@@ -52,6 +54,7 @@ require() {
     case "$cmd" in
       gum) err "install with: brew install gum" ;;
       gh)  err "install with: brew install gh" ;;
+      jq)  err "install with: brew install jq" ;;
     esac
     exit 1
   fi
@@ -61,6 +64,7 @@ preflight() {
   require gh
   require gum
   require git
+  require jq
   if ! gh auth status >/dev/null 2>&1; then
     err "gh is not authenticated. Run: gh auth login"
     exit 1
@@ -92,74 +96,12 @@ valid_name() {
 }
 
 prompt_visibility() {
-  local choice
-  choice=$(gum choose --header "Visibility:" --selected="private" private public)
-  echo "$choice"
+  gum choose --header "Visibility:" --selected="private" private public
 }
 
-# $1: name -- prompts for confirmation, exits non-zero if cancelled
 confirm_name() {
   local name=$1
   gum confirm "Create github.com/${OWNER}/${name}?"
-}
-
-apply_settings() {
-  local name=$1
-  gum spin --title "Configuring repo settings..." -- \
-    gh repo edit "${OWNER}/${name}" \
-      --delete-branch-on-merge \
-      --enable-auto-merge \
-      --enable-merge-commit \
-      --enable-squash-merge \
-      --enable-rebase-merge \
-      --enable-discussions=false \
-      --enable-wiki=false \
-      --enable-projects=false \
-      >/dev/null
-
-  # Squash commit defaults aren't exposed via `gh repo edit`; PATCH directly.
-  gum spin --title "Configuring squash-merge defaults..." -- \
-    gh api -X PATCH "repos/${OWNER}/${name}" \
-      -f squash_merge_commit_title=COMMIT_OR_PR_TITLE \
-      -f squash_merge_commit_message=COMMIT_MESSAGES \
-      >/dev/null
-}
-
-apply_ruleset() {
-  local name=$1
-  local tmp
-  tmp=$(mktemp -t new_gh_repo_ruleset.XXXXXX.json)
-  # shellcheck disable=SC2064
-  trap "rm -f '$tmp'" RETURN
-  cat >"$tmp" <<'JSON'
-{
-  "name": "default",
-  "target": "branch",
-  "enforcement": "active",
-  "conditions": {
-    "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
-  },
-  "bypass_actors": [],
-  "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "copilot_code_review" },
-    {
-      "type": "pull_request",
-      "parameters": {
-        "required_approving_review_count": 0,
-        "dismiss_stale_reviews_on_push": false,
-        "require_code_owner_review": false,
-        "require_last_push_approval": false,
-        "required_review_thread_resolution": false,
-        "allowed_merge_methods": ["merge", "squash", "rebase"]
-      }
-    }
-  ]
-}
-JSON
-  gum spin --title "Applying default-branch ruleset..." -- \
-    gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null
 }
 
 summary() {

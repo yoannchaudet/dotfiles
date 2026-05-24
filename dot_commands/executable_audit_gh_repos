@@ -1,0 +1,363 @@
+#!/usr/bin/env bash
+#
+# audit_gh_repos — scan all non-fork, non-archived personal repos under
+# yoannchaudet/ and compare them to the standard applied by new_gh_repo.
+# Prints a compact drift report, then walks through drifted repos one by
+# one offering to bring each into compliance.
+#
+# Usage:
+#   audit_gh_repos [-h|--help]
+#
+# Internal:
+#   audit_gh_repos --_audit-one REPO   # used by the parallel scan
+
+set -euo pipefail
+
+# Absolute path to this script (used to re-invoke ourselves for parallel scan
+# children — relying on bare $0 is fragile when sourced or re-aliased).
+readonly SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+# shellcheck source=.gh_repo_standard.sh
+source "${HOME}/.commands/.gh_repo_standard.sh"
+
+PARALLELISM=8
+
+usage() {
+  cat <<'EOF'
+audit_gh_repos — scan personal repos under yoannchaudet/ for drift against
+the standard applied by new_gh_repo, and interactively fix drifted repos.
+
+Usage:
+  audit_gh_repos [-h|--help] [--report-only]
+
+Flags:
+  --report-only   Print the drift report and exit (no interactive fix loop).
+EOF
+}
+
+err() {
+  printf 'audit_gh_repos: error: %s\n' "$*" >&2
+}
+
+require() {
+  local cmd=$1
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    err "missing required command: $cmd"
+    case "$cmd" in
+      gum) err "install with: brew install gum" ;;
+      gh)  err "install with: brew install gh" ;;
+      jq)  err "install with: brew install jq" ;;
+    esac
+    exit 1
+  fi
+}
+
+preflight() {
+  require gh
+  require gum
+  require jq
+  if ! gh auth status >/dev/null 2>&1; then
+    err "gh is not authenticated. Run: gh auth login"
+    exit 1
+  fi
+}
+
+# --- audit a single repo --------------------------------------------------
+#
+# Emit one JSON line:
+#   {name, drift_count, missing_settings: [...], missing_rules: [...], error?: "..."}
+#
+audit_one() {
+  local name=$1
+  local settings
+  if ! settings=$(gh api "repos/${OWNER}/${name}" 2>/dev/null); then
+    jq -cn --arg n "$name" \
+      '{name:$n, error:"settings fetch failed", drift_count:99, missing_settings:[], missing_rules:[]}'
+    return
+  fi
+
+  local missing_settings
+  missing_settings=$(jq -c \
+    --argjson actual "$settings" \
+    --argjson expected "$STANDARD_SETTINGS_JSON" \
+    -n '[$expected | to_entries[] | select($actual[.key] != .value) | .key]')
+
+  # Active rulesets on this repo
+  local rulesets_list
+  if ! rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets" 2>/dev/null); then
+    rulesets_list='[]'
+  fi
+
+  # Union of rules across active rulesets targeting ~DEFAULT_BRANCH
+  local present_rules='[]'
+  local id
+  while read -r id; do
+    [[ -z "$id" ]] && continue
+    local detail
+    detail=$(gh api "repos/${OWNER}/${name}/rulesets/$id" 2>/dev/null) || continue
+    # Only count rulesets that target ~DEFAULT_BRANCH and are active
+    if ! jq -e '
+      (.enforcement == "active") and
+      (.target == "branch") and
+      ((.conditions.ref_name.include // []) | index("~DEFAULT_BRANCH"))
+    ' <<<"$detail" >/dev/null; then
+      continue
+    fi
+    local this_rules
+    this_rules=$(jq -c '[.rules[].type]' <<<"$detail")
+    # If pull_request rule is present, validate parameters before counting it
+    if jq -e '.rules[] | select(.type == "pull_request")' <<<"$detail" >/dev/null; then
+      local pr_ok
+      pr_ok=$(jq -e '
+        (.rules[] | select(.type == "pull_request") | .parameters) as $p
+        | (["merge","squash","rebase"] - ($p.allowed_merge_methods // [])) | length == 0
+      ' <<<"$detail" >/dev/null && echo true || echo false)
+      if [[ "$pr_ok" != "true" ]]; then
+        this_rules=$(jq -c 'map(select(. != "pull_request"))' <<<"$this_rules")
+      fi
+    fi
+    present_rules=$(jq -c --argjson a "$present_rules" --argjson b "$this_rules" \
+      -n '$a + $b | unique')
+  done < <(jq -r '.[]?.id' <<<"$rulesets_list")
+
+  local missing_rules
+  missing_rules=$(jq -c --argjson present "$present_rules" \
+    --arg req "$STANDARD_RULES" \
+    -n '($req | split(" ")) - $present')
+
+  jq -cn --arg n "$name" \
+    --argjson ms "$missing_settings" \
+    --argjson mr "$missing_rules" \
+    '{name:$n, missing_settings:$ms, missing_rules:$mr,
+      drift_count: (($ms | length) + ($mr | length))}'
+}
+
+# --- main flow ------------------------------------------------------------
+
+run_audit() {
+  local report_file=$1
+  : >"$report_file"
+
+  # Use REST (paginated) instead of `gh repo list` (GraphQL) to keep within
+  # the lighter rate-limit bucket.
+  local repos_json
+  repos_json=$(gh api --paginate \
+    "/user/repos?per_page=100&affiliation=owner" \
+    --jq "map(select(.owner.login == \"${OWNER}\" and (.fork|not) and (.archived|not)) | {name: .name})")
+  # `--paginate` concatenates pages as separate JSON arrays; merge them.
+  repos_json=$(jq -s 'add' <<<"$repos_json")
+  local total
+  total=$(jq 'length' <<<"$repos_json")
+
+  printf 'Scanning %d repos...\n' "$total" >&2
+
+  # Parallel scan: launch this script with --_audit-one for each repo.
+  jq -r '.[].name' <<<"$repos_json" \
+    | xargs -P "$PARALLELISM" -I {} "$SELF" --_audit-one {} \
+    >>"$report_file"
+}
+
+short_setting_name() {
+  case "$1" in
+    delete_branch_on_merge)       echo "del-branch" ;;
+    allow_auto_merge)             echo "auto-merge" ;;
+    allow_squash_merge)           echo "squash" ;;
+    allow_merge_commit)           echo "merge-commit" ;;
+    allow_rebase_merge)           echo "rebase" ;;
+    squash_merge_commit_title)    echo "squash-title" ;;
+    squash_merge_commit_message)  echo "squash-msg" ;;
+    has_discussions)              echo "discussions" ;;
+    has_wiki)                     echo "wiki" ;;
+    has_projects)                 echo "projects" ;;
+    *)                            echo "$1" ;;
+  esac
+}
+
+short_rule_name() {
+  case "$1" in
+    deletion)            echo "rule:no-delete" ;;
+    non_fast_forward)    echo "rule:no-force-push" ;;
+    copilot_code_review) echo "rule:copilot" ;;
+    pull_request)        echo "rule:PR" ;;
+    *)                   echo "rule:$1" ;;
+  esac
+}
+
+print_report() {
+  local report_file=$1
+  local total compliant
+  total=$(wc -l <"$report_file" | tr -d ' ')
+  compliant=$(jq -s '[.[] | select(.drift_count == 0)] | length' "$report_file")
+
+  printf '\n'
+  # Sort by drift_count desc, then name
+  while IFS= read -r line; do
+    local name drift ms mr error
+    name=$(jq -r '.name' <<<"$line")
+    drift=$(jq -r '.drift_count' <<<"$line")
+    error=$(jq -r '.error // empty' <<<"$line")
+    if [[ -n "$error" ]]; then
+      gum style --foreground 196 "! ?  ${name}    error: ${error}"
+      continue
+    fi
+    if [[ "$drift" == 0 ]]; then
+      gum style --foreground 244 "$(printf '%s %2d  %s' '✓' "$drift" "$name")"
+      continue
+    fi
+
+    local parts=()
+    while read -r s; do parts+=("$(short_setting_name "$s")"); done < <(jq -r '.missing_settings[]' <<<"$line")
+    while read -r r; do parts+=("$(short_rule_name "$r")"); done < <(jq -r '.missing_rules[]' <<<"$line")
+    local joined
+    joined=$(IFS=', '; echo "${parts[*]}")
+    gum style --foreground 208 "$(printf '%s %2d  %-30s missing: %s' '✗' "$drift" "$name" "$joined")"
+  done < <(jq -cs 'sort_by(-.drift_count, .name) | .[]' "$report_file")
+
+  printf '\n'
+  gum style --bold "${compliant}/${total} repos compliant"
+  printf '\n'
+}
+
+print_drift_detail() {
+  local line=$1
+  local settings actual
+  local name
+  name=$(jq -r '.name' <<<"$line")
+  actual=$(gh api "repos/${OWNER}/${name}" 2>/dev/null) || actual='{}'
+
+  printf '\n'
+  gum style --bold --foreground 208 "${OWNER}/${name}"
+  printf '\n'
+  printf '  https://github.com/%s/%s/settings\n' "$OWNER" "$name"
+  printf '\n  Settings drift:\n'
+
+  while read -r key; do
+    local exp cur
+    exp=$(jq -r --arg k "$key" '.[$k]' <<<"$STANDARD_SETTINGS_JSON")
+    cur=$(jq -r --arg k "$key" '.[$k] // "n/a"' <<<"$actual")
+    printf '    %-32s  %s → %s\n' "$key" "$cur" "$exp"
+  done < <(jq -r '.missing_settings[]' <<<"$line")
+  if [[ "$(jq -r '.missing_settings | length' <<<"$line")" == 0 ]]; then
+    printf '    (none)\n'
+  fi
+
+  printf '\n  Ruleset drift (missing required rules on ~DEFAULT_BRANCH):\n'
+  if [[ "$(jq -r '.missing_rules | length' <<<"$line")" == 0 ]]; then
+    printf '    (none)\n'
+  else
+    while read -r rule; do
+      printf '    - %s\n' "$rule"
+    done < <(jq -r '.missing_rules[]' <<<"$line")
+  fi
+  printf '\n'
+}
+
+apply_fix_for_repo() {
+  local name=$1
+  local missing_settings_count missing_rules_count line=$2
+  missing_settings_count=$(jq -r '.missing_settings | length' <<<"$line")
+  missing_rules_count=$(jq -r '.missing_rules | length' <<<"$line")
+
+  if [[ "$missing_settings_count" -gt 0 ]]; then
+    apply_settings "$name"
+  fi
+  if [[ "$missing_rules_count" -gt 0 ]]; then
+    apply_ruleset "$name"
+  fi
+}
+
+fix_loop() {
+  local report_file=$1
+  local fixed=0 skipped=0 still=0 errored=0
+
+  # Pull drifted repos sorted by drift desc
+  local drifted_lines
+  drifted_lines=$(jq -cs 'sort_by(-.drift_count, .name) | .[] | select(.drift_count > 0 and (.error // null) == null)' "$report_file")
+
+  if [[ -z "$drifted_lines" ]]; then
+    gum style --foreground 82 --bold "All repos compliant — nothing to fix."
+    return
+  fi
+
+  printf '\n'
+  gum style --bold "Walking through drifted repos..."
+
+  local quit=false
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    if $quit; then
+      skipped=$((skipped + 1))
+      continue
+    fi
+    print_drift_detail "$line"
+    local name
+    name=$(jq -r '.name' <<<"$line")
+    local choice
+    choice=$(gum choose --header "Action for ${name}:" "fix all" "skip" "quit")
+    case "$choice" in
+      "fix all")
+        if apply_fix_for_repo "$name" "$line"; then
+          # Re-audit this repo to confirm
+          local recheck
+          recheck=$("$SELF" --_audit-one "$name")
+          local new_drift
+          new_drift=$(jq -r '.drift_count' <<<"$recheck")
+          if [[ "$new_drift" == 0 ]]; then
+            gum style --foreground 82 "  ✓ ${name} now compliant"
+            fixed=$((fixed + 1))
+          else
+            gum style --foreground 196 "  ! ${name} still has drift_count=${new_drift} after fix"
+            still=$((still + 1))
+          fi
+        else
+          gum style --foreground 196 "  ! ${name} fix failed"
+          errored=$((errored + 1))
+        fi
+        ;;
+      "skip")
+        skipped=$((skipped + 1))
+        ;;
+      "quit")
+        quit=true
+        ;;
+    esac
+  done <<<"$drifted_lines"
+
+  printf '\n'
+  gum style --bold "Summary"
+  printf '  fixed:           %d\n' "$fixed"
+  printf '  still drifted:   %d\n' "$still"
+  printf '  skipped:         %d\n' "$skipped"
+  printf '  errored:         %d\n' "$errored"
+  printf '\n'
+}
+
+main() {
+  local report_only=false
+  case "${1:-}" in
+    --_audit-one)
+      shift
+      audit_one "${1:?repo name required}"
+      exit 0
+      ;;
+    -h|--help) usage; exit 0 ;;
+    --report-only) report_only=true ;;
+    "") ;;
+    *) err "unknown argument: $1"; usage; exit 1 ;;
+  esac
+
+  preflight
+
+  local report_file
+  report_file=$(mktemp -t audit_gh_repos.XXXXXX.ndjson)
+  # shellcheck disable=SC2064
+  trap "rm -f '$report_file'" EXIT
+
+  run_audit "$report_file"
+  print_report "$report_file"
+  if ! $report_only; then
+    fix_loop "$report_file"
+  fi
+}
+
+main "$@"
