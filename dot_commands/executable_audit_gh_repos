@@ -283,7 +283,7 @@ fix_loop() {
   gum style --bold "Walking through drifted repos..."
 
   local quit=false
-  while IFS= read -r line; do
+  while IFS= read -r line <&3; do
     [[ -z "$line" ]] && continue
     if $quit; then
       skipped=$((skipped + 1))
@@ -321,7 +321,7 @@ fix_loop() {
         quit=true
         ;;
     esac
-  done <<<"$drifted_lines"
+  done 3<<<"$drifted_lines"
 
   printf '\n'
   gum style --bold "Summary"
