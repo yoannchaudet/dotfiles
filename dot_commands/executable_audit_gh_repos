@@ -259,10 +259,14 @@ apply_fix_for_repo() {
   missing_rules_count=$(jq -r '.missing_rules | length' <<<"$line")
 
   if [[ "$missing_settings_count" -gt 0 ]]; then
-    apply_settings "$name"
+    if ! apply_settings "$name"; then
+      return 1
+    fi
   fi
   if [[ "$missing_rules_count" -gt 0 ]]; then
-    apply_ruleset "$name"
+    if ! apply_ruleset "$name"; then
+      return 1
+    fi
   fi
 }
 

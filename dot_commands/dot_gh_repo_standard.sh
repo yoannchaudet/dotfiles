@@ -57,23 +57,23 @@ readonly STANDARD_RULES="deletion non_fast_forward copilot_code_review pull_requ
 # Apply the standard repo settings via a single PATCH.
 apply_settings() {
   local name=$1
-  local tmp
+  local tmp rc=0
   tmp=$(mktemp -t gh_repo_settings.XXXXXX.json)
-  # shellcheck disable=SC2064
-  trap "rm -f '$tmp'" RETURN
   printf '%s' "$STANDARD_SETTINGS_JSON" >"$tmp"
   gum spin --title "Configuring repo settings on ${name}..." -- \
-    gh api -X PATCH "repos/${OWNER}/${name}" --input "$tmp" >/dev/null
+    gh api -X PATCH "repos/${OWNER}/${name}" --input "$tmp" >/dev/null || rc=$?
+  rm -f "$tmp"
+  return $rc
 }
 
 # Create the standard default-branch ruleset.
 apply_ruleset() {
   local name=$1
-  local tmp
+  local tmp rc=0
   tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json)
-  # shellcheck disable=SC2064
-  trap "rm -f '$tmp'" RETURN
   printf '%s' "$STANDARD_RULESET_JSON" >"$tmp"
   gum spin --title "Applying default-branch ruleset on ${name}..." -- \
-    gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null
+    gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null || rc=$?
+  rm -f "$tmp"
+  return $rc
 }
