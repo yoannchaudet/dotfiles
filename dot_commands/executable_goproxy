@@ -3,9 +3,9 @@
 cat <<EOF
 Your GOPROXY Personal Access Token (PAT) has expired?
 
-- Renew it https://github.com/settings/tokens/1471022409
+- Renew it https://github.com/settings/tokens/4601557367
 - Paste it in your ~/.netrc file
 - Re-enable SSO for the GitHub org
 
-More info: https://github.com/github/goproxy/blob/main/doc/user.md 😉
+More info: https://github.com/github/goproxy/blob/b634b021183f7eb3d4c9917dea3820dcf05befe1/docs/user.md#authentication-token 😉
 EOF
