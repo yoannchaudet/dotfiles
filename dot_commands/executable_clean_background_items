@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+#
+# clean_background_items — find (and optionally remove) stale launchd plists
+# from apps that have been uninstalled. These show up as ghost entries in:
+#
+#   System Settings → General → Login Items & Extensions → Allow in the Background
+#
+# Scans:
+#   ~/Library/LaunchAgents/
+#   /Library/LaunchAgents/
+#   /Library/LaunchDaemons/
+#
+# For each .plist it extracts the executable path (Program, then
+# ProgramArguments[0]) and reports plists whose target binary no longer
+# exists on disk. With --remove it bootouts the service and deletes the
+# plist (prompts per item; --yes to skip prompts). System-owned plists are
+# touched via sudo.
+#
+# Apple-shipped /System/Library/... plists are intentionally skipped (SIP
+# protected; not user-removable). SMAppService-registered items that live
+# inside an uninstalled .app bundle but were never copied to LaunchAgents/
+# are also out of scope — for those, run `sudo sfltool resetbtm` and reboot.
+#
+# Usage:
+#   clean_background_items              # report orphans (default)
+#   clean_background_items --remove     # report + remove (prompts per item)
+#   clean_background_items --remove -y  # remove without prompting
+#   clean_background_items -h|--help    # show help
+#
+# Exit codes:
+#   0  no orphans found
+#   1  orphans found (report mode) or processed (remove mode)
+#   2  usage / environment error
+
+set -euo pipefail
+
+REMOVE=0
+ASSUME_YES=0
+for arg in "$@"; do
+  case "$arg" in
+    --remove)     REMOVE=1 ;;
+    -y | --yes)   ASSUME_YES=1 ;;
+    -h | --help)
+      sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "clean_background_items: unknown argument: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "clean_background_items: macOS only" >&2
+  exit 2
+fi
+if ! command -v plutil >/dev/null 2>&1; then
+  echo "clean_background_items: 'plutil' not found" >&2
+  exit 2
+fi
+
+DIRS=(
+  "$HOME/Library/LaunchAgents"
+  "/Library/LaunchAgents"
+  "/Library/LaunchDaemons"
+)
+
+# Read a top-level string key from a plist; empty string if missing.
+plist_get() {
+  plutil -extract "$2" raw -o - "$1" 2>/dev/null || true
+}
+
+# Best-effort executable path declared by a plist.
+plist_program() {
+  local plist="$1" prog
+  prog="$(plist_get "$plist" Program)"
+  [[ -n "$prog" ]] && { echo "$prog"; return; }
+  prog="$(plutil -extract ProgramArguments.0 raw -o - "$plist" 2>/dev/null || true)"
+  [[ -n "$prog" ]] && { echo "$prog"; return; }
+  echo ""
+}
+
+orphans=()
+unknown=()
+
+shopt -s nullglob
+for dir in "${DIRS[@]}"; do
+  [[ -d "$dir" ]] || continue
+  for plist in "$dir"/*.plist; do
+    prog="$(plist_program "$plist")"
+    if [[ -z "$prog" ]]; then
+      unknown+=("$plist")
+      continue
+    fi
+    if [[ ! -e "$prog" ]]; then
+      orphans+=("$plist|$prog")
+    fi
+  done
+done
+shopt -u nullglob
+
+if (( ${#orphans[@]} == 0 )); then
+  echo "No orphaned background items found in:"
+  printf '  - %s\n' "${DIRS[@]}"
+  if (( ${#unknown[@]} > 0 )); then
+    echo
+    echo "Note: ${#unknown[@]} plist(s) had no Program/ProgramArguments and were"
+    echo "      not checked. Inspect manually if you suspect they are stale."
+  fi
+  exit 0
+fi
+
+echo "Orphaned launchd plists (target binary missing):"
+echo
+for entry in "${orphans[@]}"; do
+  plist="${entry%%|*}"
+  prog="${entry#*|}"
+  label="$(plist_get "$plist" Label)"
+  printf '  %s\n' "$plist"
+  printf '    label:  %s\n' "${label:-<unknown>}"
+  printf '    target: %s (missing)\n' "$prog"
+  echo
+done
+
+if (( ${#unknown[@]} > 0 )); then
+  echo "Could not determine target binary for these (skipped — inspect manually):"
+  printf '  - %s\n' "${unknown[@]}"
+  echo
+fi
+
+if (( ! REMOVE )); then
+  echo "Run again with --remove to unload and delete them."
+  echo "Then either log out and back in, or run 'sudo sfltool resetbtm' and reboot"
+  echo "to force the 'Allow in the Background' panel to fully re-scan."
+  exit 1
+fi
+
+# --- removal mode ---
+uid="$(id -u)"
+
+remove_one() {
+  local plist="$1"
+  if [[ "$plist" == "$HOME/"* ]]; then
+    launchctl bootout "gui/$uid" "$plist" 2>/dev/null || true
+    rm -f "$plist"
+  else
+    sudo launchctl bootout system "$plist" 2>/dev/null || true
+    sudo rm -f "$plist"
+  fi
+}
+
+for entry in "${orphans[@]}"; do
+  plist="${entry%%|*}"
+  if (( ! ASSUME_YES )); then
+    printf 'Remove %s ? [y/N] ' "$plist"
+    if [[ -r /dev/tty ]]; then
+      read -r reply </dev/tty || reply=""
+    else
+      read -r reply || reply=""
+    fi
+    [[ "$reply" =~ ^[Yy]$ ]] || { echo "  skipped"; continue; }
+  fi
+  remove_one "$plist"
+  echo "  removed"
+done
+
+echo
+echo "Done. To force the 'Allow in the Background' panel to fully re-scan,"
+echo "run 'sudo sfltool resetbtm' and reboot."
+exit 1
