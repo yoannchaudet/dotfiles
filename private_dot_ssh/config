@@ -28,10 +28,10 @@ Host shell2
    ProxyJump bastion.githubapp.com
    User yoannchaudet
 Host shell3
-   Hostname ce-shell-ea5409b.ash1-iad.github.net
-   ForwardAgent yes
-   ProxyJump bastion.githubapp.com
-   User yoannchaudet
+  Hostname ce-shell-ea5409b.ash1-iad.github.net
+  ForwardAgent yes
+  ProxyJump bastion.githubapp.com
+  User yoannchaudet
 Host old-shell
    Hostname shell.service.ac4-iad.github.net
    ForwardAgent yes
