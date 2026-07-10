@@ -18,25 +18,25 @@ Host github.com *.github.net *.githubapp.com
   ForwardAgent no
   User yoannchaudet
 Host shell
-   Hostname ce-shell-e932d29.ac4-iad.github.net
-   ForwardAgent yes
-   ProxyJump bastion.githubapp.com
-   User yoannchaudet
+  Hostname ce-shell-e932d29.ac4-iad.github.net
+  ForwardAgent yes
+  ProxyJump bastion.githubapp.com
+  User yoannchaudet
 Host shell2
-   Hostname ce-shell-1aab30f.va3-iad.github.net
-   ForwardAgent yes
-   ProxyJump bastion.githubapp.com
-   User yoannchaudet
+  Hostname ce-shell-1aab30f.va3-iad.github.net
+  ForwardAgent yes
+  ProxyJump bastion.githubapp.com
+  User yoannchaudet
 Host shell3
   Hostname ce-shell-ea5409b.ash1-iad.github.net
   ForwardAgent yes
   ProxyJump bastion.githubapp.com
   User yoannchaudet
 Host old-shell
-   Hostname shell.service.ac4-iad.github.net
-   ForwardAgent yes
-   ProxyJump bastion.githubapp.com
-   User yoannchaudet
+  Hostname shell.service.ac4-iad.github.net
+  ForwardAgent yes
+  ProxyJump bastion.githubapp.com
+  User yoannchaudet
 
 #
 # Binggan (home server)
