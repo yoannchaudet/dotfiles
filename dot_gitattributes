@@ -1,2 +1,1 @@
-*.yml diff=dyff
-*.yaml diff=dyff
+# No custom attributes (file intentionally present for core.attributesfile)
