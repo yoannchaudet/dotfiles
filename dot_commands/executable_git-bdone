@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+	cat <<'EOF'
+Usage: git bdone [DEFAULT_BRANCH]
+       git bclean [DEFAULT_BRANCH]
+
+Update the repository's default branch, remove clean linked worktrees whose
+branches are merged, and delete merged local branches.
+
+DEFAULT_BRANCH overrides automatic detection through origin/HEAD. If origin/HEAD
+is unavailable, a sole local main or master branch is used.
+EOF
+}
+
+die() {
+	printf 'git bdone: %s\n' "$*" >&2
+	exit 1
+}
+
+warn() {
+	printf 'git bdone: warning: %s\n' "$*" >&2
+}
+
+canonical_dir() {
+	(cd "$1" 2>/dev/null && pwd -P)
+}
+
+detect_default_branch() {
+	local repository=$1
+	local override=${2:-}
+	local remote_head has_main=false has_master=false
+
+	if [[ -n "$override" ]]; then
+		printf '%s\n' "$override"
+		return
+	fi
+
+	remote_head=$(git -C "$repository" symbolic-ref --quiet --short \
+		refs/remotes/origin/HEAD 2>/dev/null || true)
+	if [[ -n "$remote_head" ]]; then
+		printf '%s\n' "${remote_head#origin/}"
+		return
+	fi
+
+	git -C "$repository" show-ref --verify --quiet refs/heads/main && has_main=true
+	git -C "$repository" show-ref --verify --quiet refs/heads/master && has_master=true
+
+	if [[ "$has_main" == true && "$has_master" == false ]]; then
+		printf 'main\n'
+	elif [[ "$has_master" == true && "$has_main" == false ]]; then
+		printf 'master\n'
+	elif [[ "$has_main" == true && "$has_master" == true ]]; then
+		die "origin/HEAD is unavailable and both main and master exist; pass the default branch explicitly"
+	else
+		die "cannot detect the default branch; set origin/HEAD or pass the branch explicitly"
+	fi
+}
+
+branch_is_checked_out() {
+	local repository=$1
+	local branch=$2
+
+	git -C "$repository" worktree list --porcelain |
+		grep -Fqx "branch refs/heads/$branch"
+}
+
+clean_merged_branches() {
+	local repository=$1
+	local default_branch=$2
+	local branch
+
+	while IFS= read -r branch; do
+		[[ "$branch" == "$default_branch" ]] && continue
+		if branch_is_checked_out "$repository" "$branch"; then
+			printf 'Keeping checked-out branch %s\n' "$branch"
+			continue
+		fi
+		git -C "$repository" branch -d -- "$branch"
+	done < <(
+		git -C "$repository" for-each-ref \
+			--format='%(refname:short)' \
+			--merged="refs/heads/$default_branch" \
+			refs/heads
+	)
+}
+
+remove_merged_worktree() {
+	local repository=$1
+	local primary_worktree=$2
+	local invoking_worktree=$3
+	local default_branch=$4
+	local worktree=$5
+	local branch=$6
+	local locked=$7
+	local prunable=$8
+	local canonical_worktree
+
+	[[ -z "$worktree" ]] && return
+	canonical_worktree=$(canonical_dir "$worktree" || true)
+
+	[[ "$canonical_worktree" == "$primary_worktree" ]] && return
+	if [[ "$canonical_worktree" == "$invoking_worktree" ]]; then
+		printf 'Keeping invoking worktree %s\n' "$worktree"
+		return
+	fi
+	if [[ "$prunable" == true ]]; then
+		warn "keeping stale worktree metadata for pruning: $worktree"
+		return
+	fi
+	if [[ "$locked" == true ]]; then
+		printf 'Keeping locked worktree %s\n' "$worktree"
+		return
+	fi
+	if [[ -z "$branch" ]]; then
+		printf 'Keeping detached worktree %s\n' "$worktree"
+		return
+	fi
+	[[ "$branch" == "$default_branch" ]] && return
+
+	if [[ -n "$(git -C "$worktree" status --porcelain)" ]]; then
+		printf 'Keeping dirty worktree %s\n' "$worktree"
+		return
+	fi
+	if ! git -C "$repository" merge-base --is-ancestor \
+		"refs/heads/$branch" "refs/heads/$default_branch"; then
+		printf 'Keeping unmerged worktree %s\n' "$worktree"
+		return
+	fi
+
+	printf 'Removing merged worktree %s\n' "$worktree"
+	git -C "$repository" worktree remove "$worktree"
+}
+
+clean_merged_worktrees() {
+	local repository=$1
+	local primary_worktree=$2
+	local invoking_worktree=$3
+	local default_branch=$4
+	local line worktree='' branch='' locked=false prunable=false
+
+	while IFS= read -r -d '' line; do
+		if [[ -z "$line" ]]; then
+			remove_merged_worktree \
+				"$repository" \
+				"$primary_worktree" \
+				"$invoking_worktree" \
+				"$default_branch" \
+				"$worktree" \
+				"$branch" \
+				"$locked" \
+				"$prunable"
+			worktree=''
+			branch=''
+			locked=false
+			prunable=false
+			continue
+		fi
+
+		case "$line" in
+			worktree\ *) worktree=${line#worktree } ;;
+			branch\ refs/heads/*) branch=${line#branch refs/heads/} ;;
+			locked*) locked=true ;;
+			prunable*) prunable=true ;;
+		esac
+	done < <(git -C "$repository" worktree list --porcelain -z)
+
+	git -C "$repository" worktree prune
+}
+
+clean_only=false
+if [[ "${1:-}" == '--clean-only' ]]; then
+	clean_only=true
+	shift
+fi
+if [[ "${1:-}" == '-h' || "${1:-}" == '--help' ]]; then
+	usage
+	exit 0
+fi
+[[ $# -le 1 ]] || {
+	usage >&2
+	exit 2
+}
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+	die "not inside a Git worktree"
+
+invoking_worktree=$(canonical_dir "$(git rev-parse --show-toplevel)")
+primary_worktree=''
+while IFS= read -r -d '' line; do
+	case "$line" in
+		worktree\ *)
+			primary_worktree=$(canonical_dir "${line#worktree }")
+			break
+			;;
+	esac
+done < <(git worktree list --porcelain -z)
+[[ -n "$primary_worktree" ]] || die "cannot locate the primary worktree"
+
+default_branch=$(detect_default_branch "$primary_worktree" "${1:-}")
+git -C "$primary_worktree" show-ref --verify --quiet \
+	"refs/heads/$default_branch" ||
+	die "local branch '$default_branch' does not exist"
+
+if [[ "$clean_only" == false ]]; then
+	git -C "$primary_worktree" checkout "$default_branch"
+	git -C "$primary_worktree" pull --rebase --prune
+	git -C "$primary_worktree" submodule update --init --recursive
+	clean_merged_worktrees \
+		"$primary_worktree" \
+		"$primary_worktree" \
+		"$invoking_worktree" \
+		"$default_branch"
+fi
+
+clean_merged_branches "$primary_worktree" "$default_branch"
