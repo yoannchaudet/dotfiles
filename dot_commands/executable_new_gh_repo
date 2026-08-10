@@ -107,13 +107,16 @@ confirm_name() {
 summary() {
   local name=$1
   local path=$2
+  local visibility=$3
+  local copilot_status="disabled (private repo)"
+  [[ "$visibility" == "public" ]] && copilot_status="enabled (public repo)"
   printf '\n'
   gum style --foreground 212 --bold "✓ ${OWNER}/${name} ready"
   printf '\n'
   printf '  URL:      https://github.com/%s/%s\n' "$OWNER" "$name"
   printf '  Local:    %s\n' "$path"
   printf '  Settings: delete-branch-on-merge, auto-merge, squash(PR title / commit messages), wiki/projects/discussions off\n'
-  printf '  Ruleset:  default-branch — deletion, non-fast-forward, copilot review, PR required\n'
+  printf '  Ruleset:  default-branch — deletion, non-fast-forward, PR required; copilot review %s\n' "$copilot_status"
   printf '\n'
 }
 
@@ -141,8 +144,8 @@ existing_mode() {
     --push
 
   apply_settings "$name"
-  apply_ruleset "$name"
-  summary "$name" "$PWD"
+  apply_ruleset "$name" "$visibility"
+  summary "$name" "$PWD" "$visibility"
 }
 
 new_mode() {
@@ -172,8 +175,8 @@ new_mode() {
   )
 
   apply_settings "$name"
-  apply_ruleset "$name"
-  summary "$name" "$target"
+  apply_ruleset "$name" "$visibility"
+  summary "$name" "$target" "$visibility"
 
   printf 'Tip: cd %s\n' "$target"
 }

@@ -65,16 +65,21 @@ preflight() {
 # --- audit a single repo --------------------------------------------------
 #
 # Emit one JSON line:
-#   {name, drift_count, missing_settings: [...], missing_rules: [...], error?: "..."}
+#   {name, visibility, drift_count, missing_settings: [...],
+#    missing_rules: [...], unexpected_rules: [...], error?: "..."}
 #
 audit_one() {
   local name=$1
   local settings
   if ! settings=$(gh api "repos/${OWNER}/${name}" 2>/dev/null); then
     jq -cn --arg n "$name" \
-      '{name:$n, error:"settings fetch failed", drift_count:99, missing_settings:[], missing_rules:[]}'
+      '{name:$n, visibility:null, error:"settings fetch failed", drift_count:99,
+        missing_settings:[], missing_rules:[], unexpected_rules:[]}'
     return
   fi
+
+  local visibility
+  visibility=$(jq -r '.visibility // if .private then "private" else "public" end' <<<"$settings")
 
   local missing_settings
   missing_settings=$(jq -c \
@@ -84,7 +89,7 @@ audit_one() {
 
   # Active rulesets on this repo
   local rulesets_list
-  if ! rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets" 2>/dev/null); then
+  if ! rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false" 2>/dev/null); then
     rulesets_list='[]'
   fi
 
@@ -120,16 +125,38 @@ audit_one() {
       -n '$a + $b | unique')
   done < <(jq -r '.[]?.id' <<<"$rulesets_list")
 
-  local missing_rules
+  local missing_rules required_rules
+  if ! required_rules=$(standard_rules "$visibility"); then
+    jq -cn --arg n "$name" --arg v "$visibility" \
+      '{name:$n, visibility:$v, error:"unsupported repository visibility",
+        drift_count:99, missing_settings:[], missing_rules:[], unexpected_rules:[]}'
+    return
+  fi
   missing_rules=$(jq -c --argjson present "$present_rules" \
-    --arg req "$STANDARD_RULES" \
+    --arg req "$required_rules" \
     -n '($req | split(" ")) - $present')
 
-  jq -cn --arg n "$name" \
+  local unexpected_rules prohibited_rules
+  if ! prohibited_rules=$(forbidden_rules "$visibility"); then
+    jq -cn --arg n "$name" --arg v "$visibility" \
+      '{name:$n, visibility:$v, error:"unsupported repository visibility",
+        drift_count:99, missing_settings:[], missing_rules:[], unexpected_rules:[]}'
+    return
+  fi
+  unexpected_rules=$(jq -c --argjson present "$present_rules" \
+    --arg prohibited "$prohibited_rules" \
+    -n 'if $prohibited == "" then [] else
+          ($prohibited | split(" ")) as $forbidden
+          | [$present[] | select(. as $rule | $forbidden | index($rule))]
+        end')
+
+  jq -cn --arg n "$name" --arg v "$visibility" \
     --argjson ms "$missing_settings" \
     --argjson mr "$missing_rules" \
-    '{name:$n, missing_settings:$ms, missing_rules:$mr,
-      drift_count: (($ms | length) + ($mr | length))}'
+    --argjson ur "$unexpected_rules" \
+    '{name:$n, visibility:$v, missing_settings:$ms, missing_rules:$mr,
+      unexpected_rules:$ur,
+      drift_count: (($ms | length) + ($mr | length) + ($ur | length))}'
 }
 
 # --- main flow ------------------------------------------------------------
@@ -192,7 +219,7 @@ print_report() {
   printf '\n'
   # Sort by drift_count desc, then name
   while IFS= read -r line; do
-    local name drift ms mr error
+    local name drift error
     name=$(jq -r '.name' <<<"$line")
     drift=$(jq -r '.drift_count' <<<"$line")
     error=$(jq -r '.error // empty' <<<"$line")
@@ -208,9 +235,10 @@ print_report() {
     local parts=()
     while read -r s; do parts+=("$(short_setting_name "$s")"); done < <(jq -r '.missing_settings[]' <<<"$line")
     while read -r r; do parts+=("$(short_rule_name "$r")"); done < <(jq -r '.missing_rules[]' <<<"$line")
+    while read -r r; do parts+=("remove:$(short_rule_name "$r")"); done < <(jq -r '.unexpected_rules[]' <<<"$line")
     local joined
     joined=$(IFS=', '; echo "${parts[*]}")
-    gum style --foreground 208 "$(printf '%s %2d  %-30s missing: %s' '✗' "$drift" "$name" "$joined")"
+    gum style --foreground 208 "$(printf '%s %2d  %-30s drift: %s' '✗' "$drift" "$name" "$joined")"
   done < <(jq -cs 'sort_by(-.drift_count, .name) | .[]' "$report_file")
 
   printf '\n'
@@ -249,14 +277,26 @@ print_drift_detail() {
       printf '    - %s\n' "$rule"
     done < <(jq -r '.missing_rules[]' <<<"$line")
   fi
+
+  printf '\n  Ruleset drift (unexpected rules on ~DEFAULT_BRANCH):\n'
+  if [[ "$(jq -r '.unexpected_rules | length' <<<"$line")" == 0 ]]; then
+    printf '    (none)\n'
+  else
+    while read -r rule; do
+      printf '    - %s\n' "$rule"
+    done < <(jq -r '.unexpected_rules[]' <<<"$line")
+  fi
   printf '\n'
 }
 
 apply_fix_for_repo() {
   local name=$1
-  local missing_settings_count missing_rules_count line=$2
+  local missing_settings_count missing_rules_count unexpected_rules_count line=$2
+  local visibility
+  visibility=$(jq -r '.visibility' <<<"$line")
   missing_settings_count=$(jq -r '.missing_settings | length' <<<"$line")
   missing_rules_count=$(jq -r '.missing_rules | length' <<<"$line")
+  unexpected_rules_count=$(jq -r '.unexpected_rules | length' <<<"$line")
 
   if [[ "$missing_settings_count" -gt 0 ]]; then
     if ! apply_settings "$name"; then
@@ -264,7 +304,12 @@ apply_fix_for_repo() {
     fi
   fi
   if [[ "$missing_rules_count" -gt 0 ]]; then
-    if ! apply_ruleset "$name"; then
+    if ! apply_ruleset "$name" "$visibility"; then
+      return 1
+    fi
+  fi
+  if [[ "$unexpected_rules_count" -gt 0 ]]; then
+    if ! remove_forbidden_rules "$name" "$visibility"; then
       return 1
     fi
   fi
