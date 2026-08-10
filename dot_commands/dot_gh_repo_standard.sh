@@ -6,10 +6,13 @@
 # Defines:
 #   OWNER                   — GitHub owner for all standardized repos
 #   STANDARD_SETTINGS_JSON  — repo-level settings expected on every repo
-#   STANDARD_RULESET_JSON   — default-branch ruleset payload to create
-#   STANDARD_RULES          — required rule types (space-separated)
+#   standard_rules <visibility>         — required rule types
+#   forbidden_rules <visibility>        — prohibited rule types
+#   standard_ruleset_json <visibility>  — ruleset payload to create
 #   apply_settings <name>   — apply the standard settings to a repo
-#   apply_ruleset  <name>   — create the standard ruleset on a repo
+#   apply_ruleset <name> <visibility>    — create the standard ruleset
+#   remove_forbidden_rules <name> <visibility>
+#                                         remove prohibited rules in place
 
 readonly OWNER="yoannchaudet"
 
@@ -26,33 +29,54 @@ readonly STANDARD_SETTINGS_JSON='{
   "has_projects": false
 }'
 
-readonly STANDARD_RULESET_JSON='{
-  "name": "default",
-  "target": "branch",
-  "enforcement": "active",
-  "conditions": {
-    "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
-  },
-  "bypass_actors": [],
-  "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "copilot_code_review" },
-    {
-      "type": "pull_request",
-      "parameters": {
-        "required_approving_review_count": 0,
-        "dismiss_stale_reviews_on_push": false,
-        "require_code_owner_review": false,
-        "require_last_push_approval": false,
-        "required_review_thread_resolution": false,
-        "allowed_merge_methods": ["merge", "squash", "rebase"]
-      }
-    }
-  ]
-}'
+standard_rules() {
+  case "$1" in
+    public)  echo "deletion non_fast_forward copilot_code_review pull_request" ;;
+    private|internal) echo "deletion non_fast_forward pull_request" ;;
+    *) return 1 ;;
+  esac
+}
 
-readonly STANDARD_RULES="deletion non_fast_forward copilot_code_review pull_request"
+forbidden_rules() {
+  case "$1" in
+    public)  echo "" ;;
+    private|internal) echo "copilot_code_review" ;;
+    *) return 1 ;;
+  esac
+}
+
+standard_ruleset_json() {
+  local visibility=$1
+  local include_copilot=false
+  [[ "$visibility" == "public" ]] && include_copilot=true
+
+  jq -cn --argjson include_copilot "$include_copilot" '
+    {
+      name: "default",
+      target: "branch",
+      enforcement: "active",
+      conditions: {
+        ref_name: {include: ["~DEFAULT_BRANCH"], exclude: []}
+      },
+      bypass_actors: [],
+      rules: (
+        [{type: "deletion"}, {type: "non_fast_forward"}]
+        + (if $include_copilot then [{type: "copilot_code_review"}] else [] end)
+        + [{
+          type: "pull_request",
+          parameters: {
+            required_approving_review_count: 0,
+            dismiss_stale_reviews_on_push: false,
+            require_code_owner_review: false,
+            require_last_push_approval: false,
+            required_review_thread_resolution: false,
+            allowed_merge_methods: ["merge", "squash", "rebase"]
+          }
+        }]
+      )
+    }
+  '
+}
 
 # Apply the standard repo settings via a single PATCH.
 apply_settings() {
@@ -66,14 +90,89 @@ apply_settings() {
   return $rc
 }
 
-# Create the standard default-branch ruleset.
+# Create the standard ruleset, or update it in place while preserving unrelated
+# rules if a ruleset named "default" already exists.
 apply_ruleset() {
   local name=$1
-  local tmp rc=0
+  local visibility=$2
+  local rulesets_list id detail tmp rc=0
+
+  rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false")
+  id=$(jq -r '.[] | select(.name == "default" and .target == "branch") | .id' \
+    <<<"$rulesets_list" | head -n 1)
+
   tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json)
-  printf '%s' "$STANDARD_RULESET_JSON" >"$tmp"
-  gum spin --title "Applying default-branch ruleset on ${name}..." -- \
-    gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null || rc=$?
+  if [[ -n "$id" ]]; then
+    detail=$(gh api "repos/${OWNER}/${name}/rulesets/$id")
+    jq --argjson standard "$(standard_ruleset_json "$visibility")" '
+      ($standard.rules | map(.type)) as $standard_types
+      | $standard + {
+          bypass_actors: (.bypass_actors // []),
+          rules: (
+            [.rules[] | select(.type as $type | $standard_types | index($type) | not)]
+            + $standard.rules
+          )
+        }
+    ' <<<"$detail" >"$tmp"
+    gum spin --title "Updating default-branch ruleset on ${name}..." -- \
+      gh api -X PUT "repos/${OWNER}/${name}/rulesets/$id" --input "$tmp" >/dev/null || rc=$?
+  else
+    standard_ruleset_json "$visibility" >"$tmp"
+    gum spin --title "Applying default-branch ruleset on ${name}..." -- \
+      gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null || rc=$?
+  fi
   rm -f "$tmp"
   return $rc
+}
+
+# Remove visibility-prohibited rules from active default-branch rulesets while
+# preserving every other rule and its parameters.
+remove_forbidden_rules() {
+  local name=$1
+  local visibility=$2
+  local forbidden
+  forbidden=$(forbidden_rules "$visibility")
+  [[ -z "$forbidden" ]] && return 0
+
+  local rulesets_list
+  rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false")
+
+  local id
+  while read -r id; do
+    [[ -z "$id" ]] && continue
+
+    local detail
+    detail=$(gh api "repos/${OWNER}/${name}/rulesets/$id" 2>/dev/null) || continue
+    if ! jq -e '
+      (.enforcement == "active") and
+      (.target == "branch") and
+      ((.conditions.ref_name.include // []) | index("~DEFAULT_BRANCH"))
+    ' <<<"$detail" >/dev/null; then
+      continue
+    fi
+    if ! jq -e --arg forbidden "$forbidden" '
+      ($forbidden | split(" ")) as $types
+      | any(.rules[]; .type as $type | $types | index($type))
+    ' <<<"$detail" >/dev/null; then
+      continue
+    fi
+
+    local tmp rc=0
+    tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json)
+    jq --arg forbidden "$forbidden" '
+      ($forbidden | split(" ")) as $types
+      | {
+          name,
+          target,
+          enforcement,
+          bypass_actors: (.bypass_actors // []),
+          conditions,
+          rules: [.rules[] | select(.type as $type | $types | index($type) | not)]
+        }
+    ' <<<"$detail" >"$tmp"
+    gum spin --title "Removing private-repo Copilot rule on ${name}..." -- \
+      gh api -X PUT "repos/${OWNER}/${name}/rulesets/$id" --input "$tmp" >/dev/null || rc=$?
+    rm -f "$tmp"
+    [[ "$rc" -eq 0 ]] || return "$rc"
+  done < <(jq -r '.[]?.id' <<<"$rulesets_list")
 }
