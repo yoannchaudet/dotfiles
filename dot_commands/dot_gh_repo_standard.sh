@@ -95,16 +95,29 @@ apply_settings() {
 apply_ruleset() {
   local name=$1
   local visibility=$2
-  local rulesets_list id detail tmp rc=0
+  local rulesets_list id detail standard tmp rc=0
 
-  rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false")
-  id=$(jq -r '.[] | select(.name == "default" and .target == "branch") | .id' \
-    <<<"$rulesets_list" | head -n 1)
-
-  tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json)
+  if ! rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false"); then
+    return 1
+  fi
+  if ! id=$(jq -r '.[] | select(.name == "default" and .target == "branch") | .id' \
+    <<<"$rulesets_list" | head -n 1); then
+    return 1
+  fi
   if [[ -n "$id" ]]; then
-    detail=$(gh api "repos/${OWNER}/${name}/rulesets/$id")
-    jq --argjson standard "$(standard_ruleset_json "$visibility")" '
+    if ! detail=$(gh api "repos/${OWNER}/${name}/rulesets/$id"); then
+      return 1
+    fi
+  fi
+  if ! standard=$(standard_ruleset_json "$visibility"); then
+    return 1
+  fi
+  if ! tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json); then
+    return 1
+  fi
+
+  if [[ -n "$id" ]]; then
+    if ! jq --argjson standard "$standard" '
       ($standard.rules | map(.type)) as $standard_types
       | $standard + {
           bypass_actors: (.bypass_actors // []),
@@ -113,11 +126,14 @@ apply_ruleset() {
             + $standard.rules
           )
         }
-    ' <<<"$detail" >"$tmp"
+    ' <<<"$detail" >"$tmp"; then
+      rm -f "$tmp"
+      return 1
+    fi
     gum spin --title "Updating default-branch ruleset on ${name}..." -- \
       gh api -X PUT "repos/${OWNER}/${name}/rulesets/$id" --input "$tmp" >/dev/null || rc=$?
   else
-    standard_ruleset_json "$visibility" >"$tmp"
+    printf '%s' "$standard" >"$tmp"
     gum spin --title "Applying default-branch ruleset on ${name}..." -- \
       gh api -X POST "repos/${OWNER}/${name}/rulesets" --input "$tmp" >/dev/null || rc=$?
   fi
@@ -131,11 +147,15 @@ remove_forbidden_rules() {
   local name=$1
   local visibility=$2
   local forbidden
-  forbidden=$(forbidden_rules "$visibility")
+  if ! forbidden=$(forbidden_rules "$visibility"); then
+    return 1
+  fi
   [[ -z "$forbidden" ]] && return 0
 
   local rulesets_list
-  rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false")
+  if ! rulesets_list=$(gh api "repos/${OWNER}/${name}/rulesets?includes_parents=false"); then
+    return 1
+  fi
 
   local id
   while read -r id; do
@@ -158,8 +178,10 @@ remove_forbidden_rules() {
     fi
 
     local tmp rc=0
-    tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json)
-    jq --arg forbidden "$forbidden" '
+    if ! tmp=$(mktemp -t gh_repo_ruleset.XXXXXX.json); then
+      return 1
+    fi
+    if ! jq --arg forbidden "$forbidden" '
       ($forbidden | split(" ")) as $types
       | {
           name,
@@ -169,8 +191,11 @@ remove_forbidden_rules() {
           conditions,
           rules: [.rules[] | select(.type as $type | $types | index($type) | not)]
         }
-    ' <<<"$detail" >"$tmp"
-    gum spin --title "Removing private-repo Copilot rule on ${name}..." -- \
+    ' <<<"$detail" >"$tmp"; then
+      rm -f "$tmp"
+      return 1
+    fi
+    gum spin --title "Removing forbidden rules on ${name}..." -- \
       gh api -X PUT "repos/${OWNER}/${name}/rulesets/$id" --input "$tmp" >/dev/null || rc=$?
     rm -f "$tmp"
     [[ "$rc" -eq 0 ]] || return "$rc"

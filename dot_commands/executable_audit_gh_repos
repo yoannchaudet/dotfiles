@@ -73,7 +73,7 @@ audit_one() {
   local settings
   if ! settings=$(gh api "repos/${OWNER}/${name}" 2>/dev/null); then
     jq -cn --arg n "$name" \
-      '{name:$n, error:"settings fetch failed", drift_count:99,
+      '{name:$n, visibility:null, error:"settings fetch failed", drift_count:99,
         missing_settings:[], missing_rules:[], unexpected_rules:[]}'
     return
   fi
@@ -126,13 +126,23 @@ audit_one() {
   done < <(jq -r '.[]?.id' <<<"$rulesets_list")
 
   local missing_rules required_rules
-  required_rules=$(standard_rules "$visibility")
+  if ! required_rules=$(standard_rules "$visibility"); then
+    jq -cn --arg n "$name" --arg v "$visibility" \
+      '{name:$n, visibility:$v, error:"unsupported repository visibility",
+        drift_count:99, missing_settings:[], missing_rules:[], unexpected_rules:[]}'
+    return
+  fi
   missing_rules=$(jq -c --argjson present "$present_rules" \
     --arg req "$required_rules" \
     -n '($req | split(" ")) - $present')
 
   local unexpected_rules prohibited_rules
-  prohibited_rules=$(forbidden_rules "$visibility")
+  if ! prohibited_rules=$(forbidden_rules "$visibility"); then
+    jq -cn --arg n "$name" --arg v "$visibility" \
+      '{name:$n, visibility:$v, error:"unsupported repository visibility",
+        drift_count:99, missing_settings:[], missing_rules:[], unexpected_rules:[]}'
+    return
+  fi
   unexpected_rules=$(jq -c --argjson present "$present_rules" \
     --arg prohibited "$prohibited_rules" \
     -n 'if $prohibited == "" then [] else
