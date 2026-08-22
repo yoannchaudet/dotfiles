@@ -16,8 +16,5 @@ done > "$output_file"
 mkdir -p "$HOME/.ssh/sockets"
 chmod 0700 "$HOME/.ssh/sockets"
 
-# 3. Make sure git uses our global attributes file.
-git config --global core.attributesfile "$HOME/.gitattributes"
-
-# 4. Enable Git LFS.
+# 3. Enable Git LFS.
 git lfs install
