@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# git_signing_ssh_keygen — ssh-keygen wrapper used by git for SSH commit
+# signing (git's `gpg.ssh.program`).
+#
+# The signing key has no private half on disk; it lives in the Bitwarden
+# Desktop SSH agent. git/ssh-keygen reach it through SSH_AUTH_SOCK. Some
+# hosts (GUI editors, coding agents) run git in a sanitized environment that
+# strips SSH_AUTH_SOCK, which breaks signing with:
+#   error: No private key found for public key ".../id_ed25519.pub"?
+#
+# Forcing the socket here makes signing (and verification) work regardless of
+# the inherited environment. Bitwarden must still be running and unlocked.
+export SSH_AUTH_SOCK="$HOME/.bitwarden-ssh-agent.sock"
+exec /usr/bin/ssh-keygen "$@"

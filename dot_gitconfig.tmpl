@@ -49,6 +49,9 @@
 [gpg]
 	format = ssh
 [gpg "ssh"]
+	# Wrapper forces SSH_AUTH_SOCK to the Bitwarden agent so signing works
+	# even when the calling app strips the environment (see the script).
+	program = {{ .chezmoi.homeDir }}/.commands/git_signing_ssh_keygen
 	allowedSignersFile = ~/.gitAllowedSignersFile
 
 # Work
