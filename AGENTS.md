@@ -26,6 +26,8 @@ After cloning, `chezmoi init` reads it directly.
 │   │       └── fish_set_custom_paths.fish
 │   └── ghostty/config                       # → ~/.config/ghostty/config
 ├── private_dot_ssh/config                   # → ~/.ssh/config (dir gets 0700)
+├── private_Library/LaunchAgents/            # → ~/Library/LaunchAgents/ (~/Library kept 0700)
+│   └── com.yoannchaudet.ssh-auth-sock.plist.tmpl  # publishes SSH_AUTH_SOCK to launchd at login
 ├── dot_commands/                            # → ~/.commands/  (on PATH)
 │   ├── edit_dotfiles                        # executable bit preserved from source
 │   └── ...
@@ -37,6 +39,7 @@ After cloning, `chezmoi init` reads it directly.
 ├── run_once_after_42-dracula-theme.sh.tmpl
 ├── run_once_after_50-install-monoki-font.sh.tmpl
 ├── run_once_after_60-git-signing-setup.sh.tmpl
+├── run_onchange_after_62-load-ssh-auth-sock-agent.sh.tmpl # (re)loads the SSH_AUTH_SOCK LaunchAgent
 └── run_once_after_70-install-rust.sh.tmpl
 ```
 
@@ -128,6 +131,27 @@ hash, not "did this thing happen on the system".
 chezmoi edit-config        # toggle profile = ...
 chezmoi apply
 ```
+
+## Git commit signing (SSH key via Bitwarden agent)
+
+Commits are signed with an **SSH** key (`gpg.format = ssh`), not GPG.
+`user.signingkey` points at `~/.ssh/id_ed25519.pub`, but **the matching
+private key is not on disk** — it lives in the **Bitwarden Desktop SSH
+agent** (`~/.bitwarden-ssh-agent.sock`). `git`/`ssh-keygen -Y sign` reaches
+that key through `SSH_AUTH_SOCK`.
+
+Two things must set `SSH_AUTH_SOCK` so signing works everywhere:
+
+- **Interactive fish shells** — `dot_config/fish/config.fish` exports it.
+- **Everything else (GUI editors, GitHub Desktop, Copilot, ...)** — the
+  `private_Library/LaunchAgents/com.yoannchaudet.ssh-auth-sock.plist`
+  LaunchAgent runs `launchctl setenv SSH_AUTH_SOCK ...` at login, so apps
+  launched by launchd inherit it. `run_onchange_after_62-...` (re)loads it.
+
+If an app reports *"private key for `~/.ssh/id_ed25519.pub` is
+unavailable"*: Bitwarden must be running and unlocked, and the app must have
+been (re)launched after the LaunchAgent published the socket. Verify with
+`launchctl getenv SSH_AUTH_SOCK` and `ssh-add -L`.
 
 ## Local validation
 
