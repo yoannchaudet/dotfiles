@@ -11,5 +11,21 @@
 #
 # Forcing the socket here makes signing (and verification) work regardless of
 # the inherited environment. Bitwarden must still be running and unlocked.
-export SSH_AUTH_SOCK="$HOME/.bitwarden-ssh-agent.sock"
+sock="$HOME/.bitwarden-ssh-agent.sock"
+[ -S "$sock" ] && export SSH_AUTH_SOCK="$sock"
+
+# Signing needs the agent (the private key lives only in Bitwarden). Fail with
+# a clear hint if the socket is missing. Verification (-Y verify /
+# find-principals) uses the allowed-signers file, not the agent, so it is left
+# to work even when Bitwarden is closed.
+case " $* " in
+  *" sign "*)
+    if [ ! -S "$sock" ]; then
+      echo "git_signing_ssh_keygen: Bitwarden SSH agent socket not found at" >&2
+      echo "  $sock — is Bitwarden Desktop running and unlocked (SSH agent on)?" >&2
+      exit 1
+    fi
+    ;;
+esac
+
 exec /usr/bin/ssh-keygen "$@"
