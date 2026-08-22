@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# (Re)load the LaunchAgent that publishes SSH_AUTH_SOCK to launchd, so GUI
+# apps launched outside a fish shell can reach the Bitwarden SSH agent for
+# git commit signing. Reruns whenever the plist below changes.
+#
+# plist hash: {{ include "private_Library/LaunchAgents/com.yoannchaudet.ssh-auth-sock.plist.tmpl" | sha256sum }}
+set -euo pipefail
+
+label="com.yoannchaudet.ssh-auth-sock"
+plist="$HOME/Library/LaunchAgents/$label.plist"
+domain="gui/$(id -u)"
+
+echo "Reloading LaunchAgent $label..."
+launchctl bootout "$domain/$label" 2>/dev/null || true
+launchctl bootstrap "$domain" "$plist"
+
+# Also publish it immediately for the current login session (bootstrap +
+# RunAtLoad already does this, but be explicit and idempotent).
+launchctl setenv SSH_AUTH_SOCK "$HOME/.bitwarden-ssh-agent.sock"

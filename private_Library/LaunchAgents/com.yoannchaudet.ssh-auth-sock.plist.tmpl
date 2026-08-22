@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.yoannchaudet.ssh-auth-sock</string>
+
+	<!-- Publish the Bitwarden Desktop SSH agent socket into launchd's
+	     environment at login. GUI apps (VS Code, GitHub Desktop, Copilot,
+	     ...) launched outside a fish shell inherit SSH_AUTH_SOCK from
+	     launchd, so they can use the agent for SSH auth and, in particular,
+	     SSH-based git commit signing (user.signingkey points at a .pub with
+	     no private key on disk; the private key lives in the agent).
+	     Interactive fish sessions set SSH_AUTH_SOCK themselves in
+	     config.fish; this covers everything else. -->
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>launchctl setenv SSH_AUTH_SOCK "{{ .chezmoi.homeDir }}/.bitwarden-ssh-agent.sock"</string>
+	</array>
+
+	<key>RunAtLoad</key>
+	<true/>
+</dict>
+</plist>
