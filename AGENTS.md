@@ -148,10 +148,17 @@ Two things must set `SSH_AUTH_SOCK` so signing works everywhere:
   LaunchAgent runs `launchctl setenv SSH_AUTH_SOCK ...` at login, so apps
   launched by launchd inherit it. `run_onchange_after_62-...` (re)loads it.
 
+Some hosts (certain editors / coding agents) run git in a **sanitized
+environment that strips `SSH_AUTH_SOCK`**, which breaks signing with
+*"No private key found for public key ..."*. To be robust against that,
+`gpg.ssh.program` points at `~/.commands/git_signing_ssh_keygen`
+(`dot_commands/executable_git_signing_ssh_keygen`), a wrapper that forces
+`SSH_AUTH_SOCK` to the Bitwarden socket before exec-ing `ssh-keygen`. So
+signing no longer depends on the inherited environment at all.
+
 If an app reports *"private key for `~/.ssh/id_ed25519.pub` is
-unavailable"*: Bitwarden must be running and unlocked, and the app must have
-been (re)launched after the LaunchAgent published the socket. Verify with
-`launchctl getenv SSH_AUTH_SOCK` and `ssh-add -L`.
+unavailable"* or *"No private key found ..."*: Bitwarden must be running and
+unlocked. Verify with `launchctl getenv SSH_AUTH_SOCK` and `ssh-add -L`.
 
 ## Local validation
 
