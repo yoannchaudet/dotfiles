@@ -4,11 +4,13 @@ set -euo pipefail
 
 usage() {
 	cat <<'EOF'
-Usage: git bdone [DEFAULT_BRANCH]
+Usage: git bdone [--clean-worktrees] [DEFAULT_BRANCH]
        git bclean [DEFAULT_BRANCH]
 
-Update the repository's default branch, remove clean linked worktrees whose
-branches are merged, and delete merged local branches.
+Update the repository's default branch and delete merged local branches.
+
+--clean-worktrees also removes clean linked worktrees whose branches are merged
+and prunes stale worktree metadata.
 
 DEFAULT_BRANCH overrides automatic detection through origin/HEAD. If origin/HEAD
 is unavailable, a sole local main or master branch is used.
@@ -171,18 +173,38 @@ clean_merged_worktrees() {
 }
 
 clean_only=false
-if [[ "${1:-}" == '--clean-only' ]]; then
-	clean_only=true
+clean_worktrees=false
+default_branch_override=''
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--clean-only)
+			clean_only=true
+			;;
+		--clean-worktrees)
+			clean_worktrees=true
+			;;
+		-h | --help)
+			usage
+			exit 0
+			;;
+		-*)
+			usage >&2
+			exit 2
+			;;
+		*)
+			[[ -z "$default_branch_override" ]] || {
+				usage >&2
+				exit 2
+			}
+			default_branch_override=$1
+			;;
+	esac
 	shift
+done
+
+if [[ "$clean_only" == true && "$clean_worktrees" == true ]]; then
+	die "--clean-worktrees cannot be used with git bclean"
 fi
-if [[ "${1:-}" == '-h' || "${1:-}" == '--help' ]]; then
-	usage
-	exit 0
-fi
-[[ $# -le 1 ]] || {
-	usage >&2
-	exit 2
-}
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 	die "not inside a Git worktree"
@@ -199,7 +221,7 @@ while IFS= read -r -d '' line; do
 done < <(git worktree list --porcelain -z)
 [[ -n "$primary_worktree" ]] || die "cannot locate the primary worktree"
 
-default_branch=$(detect_default_branch "$primary_worktree" "${1:-}")
+default_branch=$(detect_default_branch "$primary_worktree" "$default_branch_override")
 git -C "$primary_worktree" show-ref --verify --quiet \
 	"refs/heads/$default_branch" ||
 	die "local branch '$default_branch' does not exist"
@@ -208,11 +230,13 @@ if [[ "$clean_only" == false ]]; then
 	git -C "$primary_worktree" checkout "$default_branch"
 	git -C "$primary_worktree" pull --rebase --prune
 	git -C "$primary_worktree" submodule update --init --recursive
-	clean_merged_worktrees \
-		"$primary_worktree" \
-		"$primary_worktree" \
-		"$invoking_worktree" \
-		"$default_branch"
+	if [[ "$clean_worktrees" == true ]]; then
+		clean_merged_worktrees \
+			"$primary_worktree" \
+			"$primary_worktree" \
+			"$invoking_worktree" \
+			"$default_branch"
+	fi
 fi
 
 clean_merged_branches "$primary_worktree" "$default_branch"
